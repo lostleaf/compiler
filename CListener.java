@@ -141,14 +141,14 @@ public interface CListener extends ParseTreeListener {
 	void enterTypedef_name(CParser.Typedef_nameContext ctx);
 	void exitTypedef_name(CParser.Typedef_nameContext ctx);
 
+	void enterInteger_constant(CParser.Integer_constantContext ctx);
+	void exitInteger_constant(CParser.Integer_constantContext ctx);
+
 	void enterAnd_expression(CParser.And_expressionContext ctx);
 	void exitAnd_expression(CParser.And_expressionContext ctx);
 
 	void enterPrimary_expression(CParser.Primary_expressionContext ctx);
 	void exitPrimary_expression(CParser.Primary_expressionContext ctx);
-
-	void enterInteger_constant(CParser.Integer_constantContext ctx);
-	void exitInteger_constant(CParser.Integer_constantContext ctx);
 
 	void enterString(CParser.StringContext ctx);
 	void exitString(CParser.StringContext ctx);

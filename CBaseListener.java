@@ -144,14 +144,14 @@ public class CBaseListener implements CListener {
 	@Override public void enterTypedef_name(CParser.Typedef_nameContext ctx) { }
 	@Override public void exitTypedef_name(CParser.Typedef_nameContext ctx) { }
 
+	@Override public void enterInteger_constant(CParser.Integer_constantContext ctx) { }
+	@Override public void exitInteger_constant(CParser.Integer_constantContext ctx) { }
+
 	@Override public void enterAnd_expression(CParser.And_expressionContext ctx) { }
 	@Override public void exitAnd_expression(CParser.And_expressionContext ctx) { }
 
 	@Override public void enterPrimary_expression(CParser.Primary_expressionContext ctx) { }
 	@Override public void exitPrimary_expression(CParser.Primary_expressionContext ctx) { }
-
-	@Override public void enterInteger_constant(CParser.Integer_constantContext ctx) { }
-	@Override public void exitInteger_constant(CParser.Integer_constantContext ctx) { }
 
 	@Override public void enterString(CParser.StringContext ctx) { }
 	@Override public void exitString(CParser.StringContext ctx) { }
