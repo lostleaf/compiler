@@ -1,5 +1,10 @@
 grammar C;
 
+@header {
+package syn;
+}
+
+
 program: (declaration | function_definition)+
        ;
 
