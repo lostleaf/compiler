@@ -1,7 +1,7 @@
 int main()
 {
   int abc;
-  int b;
+  int b  ;
 
   abc = 0;
   b = 10;

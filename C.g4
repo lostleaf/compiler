@@ -26,9 +26,9 @@ initializer: assignment_expression
 | '{' initializer (',' initializer)* '}'
 ;
 
-type_specifier: 'void' | 'char' | 'int' | Typedef_name
-| struct_or_union Identifier? '{' (type_specifier declarators ';')+ '}'
-| struct_or_union Identifier
+type_specifier: 'void' | 'char' | 'int' | typedef_name
+| struct_or_union identifier? '{' (type_specifier declarators ';')+ '}'
+| struct_or_union identifier
 ;
 
 struct_or_union: 'struct' | 'union'
@@ -41,7 +41,7 @@ declarator: plain_declarator '(' parameters? ')'
 | plain_declarator ('[' constant_expression ']')*
 ;
 
-plain_declarator: '*'* Identifier
+plain_declarator: '*'* identifier
 ;
 
 statement: expression_statement
@@ -150,8 +150,8 @@ postfix_expression: primary_expression postfix*
 
 postfix: '[' expression ']'
 | '(' arguments ')'
-| '.' Identifier
-| '->' Identifier
+| '.' identifier
+| '->' identifier
 | '++'
 | '--'
 ;
@@ -159,15 +159,21 @@ postfix: '[' expression ']'
 arguments: assignment_expression (',' assignment_expression)*
 ;
 
-primary_expression: Identifier
+primary_expression: identifier
 | constant
 | string
 | '(' expression ')'
 ;
 
-constant: Integer_constant
-| Character_constant
+constant: integer_constant
+| character_constant
 ;
+
+integer_constant : Integer_constant;
+character_constant : Character_constant;
+identifier : Identifier;
+typedef_name : Identifier;
+string : String;
 
 // LEXER =====================================================
 SPACE : [ \r\t\n]+ -> channel(HIDDEN);
@@ -181,17 +187,13 @@ SINGLE_COMMENT : '//' ~[\r\n]* -> channel(HIDDEN);
 Hex_Digit : Digit | 'A'..'F' | 'a'..'f';
 
 Identifier : Letter (Letter|Digit)*  ;
-fragment Letter : [a-zA-Z_$] ;
-Digit : [0-9] ;
 
-Typedef_name : Identifier;
+fragment Letter : [a-zA-Z_$] ;
+fragment Digit : [0-9] ;
 
 Character_constant : '\'' ~('\\') | ( '\\' ('b'|'t'|'n'|'f'|'r'|'\"'|'\''|'\\') )'\'';
 
-Integer_constant :  HEX | DEC | OCT;
-HEX : ( '0' ('x'|'X') Hex_Digit+ ) ;
-DEC : ( ('1'..'9') Digit* ) ;
-OCT : ( '0' ('0'..'7')* );
+Integer_constant :  ( '0' ('x'|'X') Hex_Digit+ ) | ( ('1'..'9') Digit* ) | ( '0' ('0'..'7')* );
 
-string : '\"' (~('\\') | ( '\\' ('b'|'t'|'n'|'f'|'r'|'\"'|'\''|'\\') ))*? '\"';
+String : '\"' (~('\\') | ( '\\' ('b'|'t'|'n'|'f'|'r'|'\"'|'\''|'\\') ))*? '\"';
 
