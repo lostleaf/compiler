@@ -1,199 +1,206 @@
 grammar C;
 
-program: (declaration | function_definition)+
-;
 
-declaration: 'typedef' type_specifier declarators ';'
-| type_specifier init_declarators? ';'
-;
 
-function_definition: type_specifier plain_declarator '(' parameters? ')' compound_statement
-;
+program: (declaration | functionDefinition)+
+       ;
 
-parameters: plain_declaration (',' plain_declaration)* (',' '...')?
-;
+declaration: 'typedef' typeSpecifier declarators ';'
+           | typeSpecifier initDeclarators? ';'
+           ;
+
+functionDefinition: typeSpecifier plainDeclarator '(' parameters? ')' compoundStatement
+                   ;
+
+parameters: plainDeclaration (',' plainDeclaration)* (',' '...')?
+          ;
 
 declarators: declarator (',' declarator)*
-;
+           ;
 
-init_declarators: init_declarator (',' init_declarator)*
-;
+initDeclarators: initDeclarator (',' initDeclarator)*
+                ;
 
-init_declarator: declarator ('=' initializer)?
-;
+initDeclarator: declarator ('=' initializer)?
+               ;
 
-initializer: assignment_expression
-| '{' initializer (',' initializer)* '}'
-;
+initializer: assignmentExpression
+           | '{' initializer+ '}'
+           ;
 
-type_specifier: 'void' | 'char' | 'int' | typedef_name
-| struct_or_union identifier? '{' (type_specifier declarators ';')+ '}'
-| struct_or_union identifier
-;
+typeSpecifier: 'void' | 'char' | 'int' | typedefName
+              | structOrUnion identifier? '{' plainDeclaration+ '}'
+              | structOrUnion identifier
+              ;
 
-struct_or_union: 'struct' | 'union'
-;
+structOrUnion: 'struct' | 'union'
+               ;
 
-plain_declaration: type_specifier declarator
-;
+plainDeclaration: typeSpecifier declarator+
+                 ;
 
-declarator: plain_declarator '(' parameters? ')'
-| plain_declarator ('[' constant_expression ']')*
-;
+declarator: plainDeclarator '(' parameters? ')'
+          | plainDeclarator ('[' constantExpression ']')*
+          ;
 
-plain_declarator: '*'* identifier
-;
+plainDeclarator: '*'* identifier
+                ;
 
-statement: expression_statement
-| compound_statement
-| selection_statement
-| iteration_statement
-| jump_statement
-;
+statement: expressionStatement
+         | compoundStatement
+         | selectionStatement
+         | iterationStatement
+         | jumpStatement
+         ;
 
-expression_statement: expression? ';'
-;
+expressionStatement: expression? ';'
+                    ;
 
-compound_statement: '{' declaration* statement* '}'
-;
+compoundStatement: '{' declaration* statement* '}'
+                  ;
 
-selection_statement: 'if' '(' expression ')' statement ('else' statement)?
-;
+selectionStatement: 'if' '(' expression ')' statement ('else' statement)?
+                   ;
 
-iteration_statement: 'while' '(' expression ')' statement
-| 'for' '(' expression? ';' expression? ';' expression? ')' statement
-;
+iterationStatement: 'while' '(' expression ')' statement
+                   | 'for' '(' expression? ';' expression? ';' expression? ')' statement
+                   ;
 
-jump_statement: 'continue' ';'
-| 'break' ';'
-| 'return' expression? ';'
-;
+jumpStatement: 'continue' ';'
+              | 'break' ';'
+              | 'return' expression? ';'
+              ;
 
-expression: assignment_expression (',' assignment_expression)*
-;
+expression: assignmentExpression (',' assignmentExpression)*
+          ;
 
-assignment_expression: logical_or_expression
-| unary_expression assignment_operator assignment_expression
-;
+assignmentExpression: logicalOrExpression
+                     | unaryExpression assignmentOperator assignmentExpression
+                     ;
 
-assignment_operator: '=' | '*=' | '/=' | '%=' | '+=' | '-=' | '<<=' | '>>=' | '&=' | '^=' | '|='
-;
+assignmentOperator: '=' | '*=' | '/=' | '%=' | '+=' | '-=' | '<<=' | '>>=' | '&=' | '^=' | '|='
+                   ;
 
-constant_expression: logical_or_expression
-;
+constantExpression: logicalOrExpression
+                   ;
 
-logical_or_expression: logical_and_expression ('||' logical_and_expression)*
-;
+logicalOrExpression: logicalAndExpression ('||' logicalAndExpression)*
+                     ;
 
-logical_and_expression: inclusive_or_expression ('&&' inclusive_or_expression)*
-;
+logicalAndExpression: inclusiveOrExpression ('&&' inclusiveOrExpression)*
+                      ;
 
-inclusive_or_expression: exclusive_or_expression ('|' exclusive_or_expression)*
-;
+inclusiveOrExpression: exclusiveOrExpression ('|' exclusiveOrExpression)*
+                       ;
 
-exclusive_or_expression: and_expression ('^' and_expression)*
-;
+exclusiveOrExpression: andExpression ('^' andExpression)*
+                       ;
 
-and_expression: equality_expression ('&' equality_expression)*
-;
+andExpression: equalityExpression ('&' equalityExpression)*
+              ;
 
-equality_expression: relational_expression (equality_operator relational_expression)*
-;
+equalityExpression: relationalExpression (equalityOperator relationalExpression)*
+                   ;
 
-equality_operator: '==' | '!='
-;
+equalityOperator: '==' | '!='
+                 ;
 
-relational_expression: shift_expression (relational_operator shift_expression)*
-;
+relationalExpression: shiftExpression (relationalOperator shiftExpression)*
+                     ;
 
-relational_operator: '<' | '>' | '<=' | '>='
-;
+relationalOperator: '<' | '>' | '<=' | '>='
+                   ;
 
-shift_expression: additive_expression (shift_operator additive_expression)*
-;
+shiftExpression: additiveExpression (shiftOperator additiveExpression)*
+                ;
 
-shift_operator: '<<' | '>>'
-;
+shiftOperator: '<<' | '>>'
+              ;
 
-additive_expression: multiplicative_expression (additive_operator multiplicative_expression)*
-;
+additiveExpression: multiplicativeExpression (additiveOperator multiplicativeExpression)*
+                   ;
 
-additive_operator: '+' | '-'
-;
+additiveOperator: '+' | '-'
+                 ;
 
-multiplicative_expression: cast_expression (multiplicative_operator cast_expression)*
-;
+multiplicativeExpression: castExpression (multiplicativeOperator castExpression)*
+                         ;
 
-multiplicative_operator: '*' | '/' | '%'
-;
+multiplicativeOperator: '*' | '/' | '%'
+                       ;
 
-cast_expression: unary_expression
-| '(' type_name ')' cast_expression
-;
+castExpression: unaryExpression
+               | '(' typeName ')' castExpression
+               ;
 
-type_name: type_specifier '*'*
-;
+typeName: typeSpecifier '*'*
+         ;
 
-unary_expression: postfix_expression
-| '++' unary_expression
-| '--' unary_expression
-| unary_operator cast_expression
-| 'sizeof' unary_expression
-| 'sizeof' '(' type_name ')'
-;
+unaryExpression: postfixExpression
+                | '++' unaryExpression
+                | '--' unaryExpression
+                | unaryOperator castExpression
+                | 'sizeof' unaryExpression
+                | 'sizeof' '(' typeName ')'
+                ;
 
-unary_operator: '&' | '*' | '+' | '-' | '~' | '!'
-;
+unaryOperator: '&' | '*' | '+' | '-' | '~' | '!'
+              ;
 
-postfix_expression: primary_expression postfix*
-;
+postfixExpression: primaryExpression postfix*
+                  ;
 
 postfix: '[' expression ']'
-| '(' arguments ')'
-| '.' identifier
-| '->' identifier
-| '++'
-| '--'
-;
+       | '(' arguments? ')'
+       | '.' identifier
+       | '->' identifier
+       | '++'
+       | '--'
+       ;
 
-arguments: assignment_expression (',' assignment_expression)*
-;
+arguments: assignmentExpression (',' assignmentExpression)*
+         ;
 
-primary_expression: identifier
-| constant
-| string
-| '(' expression ')'
-;
+primaryExpression: identifier
+                  | constant
+                  | string
+                  | '(' expression ')'
+                  ;
 
-constant: integer_constant
-| character_constant
-;
+constant: integerConstant
+        | characterConstant
+        ;
 
-integer_constant : Integer_constant;
-character_constant : Character_constant;
-identifier : Identifier;
-typedef_name : Identifier;
-string : String;
+identifier: Identifier;
+
+typedefName: Identifier;
+
+integerConstant: Hex | Dec | Oct;
+
+characterConstant: Character;
+
+
+string: String;
+
 
 // LEXER =====================================================
-SPACE : [ \r\t\n]+ -> channel(HIDDEN);
 
-MULTI_COMMENT : '/*' .*? '*/' -> channel(HIDDEN);
+Whitespace : [ \r\t\n]+ -> channel(HIDDEN);
 
-SINGLE_COMMENT : '//' ~[\r\n]* -> channel(HIDDEN);
+fragment EOL : '\r' | '\n' | ('\r''\n') ;
 
+Multi_comment : '/*' .*? '*/' -> channel(HIDDEN);
+Single_comment : '//' ~[\r\n]* (EOL) -> channel(HIDDEN);
 
+Hex : '0' ('x'|'X') HexDigit+ ;
+Dec : '0' | ('1'..'9' Digit+)  ;
+Oct : '0' ('0'..'7')+  ;
 
-Hex_Digit : Digit | 'A'..'F' | 'a'..'f';
+fragment Digit : '0'..'9';
+fragment HexDigit : (Digit |'a'..'f'|'A'..'F') ;
+fragment Letter: '$' | 'A'..'Z' | '_' |  'a'..'z';
 
-Identifier : Letter (Letter|Digit)*  ;
+Character : '\'' ( ('\\' ('b'|'t'|'n'|'f'|'r'|'\"'|'\''|'\\')) | ~('\''|'\\') ) '\'';
+String : '"' ( ('\\' ('b'|'t'|'n'|'f'|'r'|'\"'|'\''|'\\')) | ~('\\'|'"') )* '"';
 
-fragment Letter : [a-zA-Z_$] ;
-fragment Digit : [0-9] ;
-
-Character_constant : '\'' ~('\\') | ( '\\' ('b'|'t'|'n'|'f'|'r'|'\"'|'\''|'\\') )'\'';
-
-Integer_constant :  ( '0' ('x'|'X') Hex_Digit+ ) | ( ('1'..'9') Digit* ) | ( '0' ('0'..'7')* );
-
-String : '\"' (~('\\') | ( '\\' ('b'|'t'|'n'|'f'|'r'|'\"'|'\''|'\\') ))*? '\"';
-
+Identifier : Letter (Letter | Digit)*;
