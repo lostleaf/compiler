@@ -1,6 +1,6 @@
 // Generated from C.g4 by ANTLR 4.0
 
-package syn;
+package parser;
 
 import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.dfa.DFA;

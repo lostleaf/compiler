@@ -1,9 +1,8 @@
 // Generated from C.g4 by ANTLR 4.0
 
-package syn;
+package parser;
 
-import org.antlr.v4.runtime.tree.*;
-import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.tree.ParseTreeListener;
 
 public interface CListener extends ParseTreeListener {
 	void enterExpression(CParser.ExpressionContext ctx);

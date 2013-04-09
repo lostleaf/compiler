@@ -5,8 +5,9 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.Token;
 
-import syn.CLexer;
-import syn.CParser;
+import parser.CLexer;
+import parser.CParser;
+
 
 public class Test {
 	final static String filename = "example2.c";

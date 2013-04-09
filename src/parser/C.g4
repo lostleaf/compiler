@@ -1,7 +1,7 @@
 grammar C;
 
 @header {
-package syn;
+package parser;
 }
 
 
