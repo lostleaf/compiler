@@ -1,7 +1,7 @@
 grammar C;
 
 @header {
-package parser;
+package compiler.parser;
 }
 
 

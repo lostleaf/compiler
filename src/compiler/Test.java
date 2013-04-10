@@ -1,3 +1,4 @@
+package compiler;
 import java.io.PrintWriter;
 
 import org.antlr.v4.runtime.ANTLRFileStream;
@@ -5,8 +6,9 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.Token;
 
-import parser.CLexer;
-import parser.CParser;
+import compiler.parser.CLexer;
+import compiler.parser.CParser;
+
 
 
 public class Test {
