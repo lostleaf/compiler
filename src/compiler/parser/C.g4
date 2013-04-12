@@ -17,18 +17,23 @@ locals[List<Node> list=new ArrayList<Node>()]
 
 declaration returns[Declaration ret]
 : 'typedef' ts=type_specifier de=declarators ';' {$ret = new Declaration($ts.ret,$de.ret);}
-| ts=type_specifier id=init_declarators? ';' {$ret = new Declaration($ts.ret,$id.ret);}
+| {InitDeclarators init = null;}
+  ts=type_specifier (id=init_declarators {init = $id.ret;})? ';'
+  {$ret = new Declaration($ts.ret, init);}
 ;
 
 function_definition returns[FunctionDefinition ret]
-: ts=type_specifier pd=plain_declarator '(' (p=parameters)? ')' cs=compound_statement
-{$ret = new FunctionDefinition($ts.ret,$pd.ret,$p.ret,$cs.ret);}
+: {Parameters para = null;}
+  ts=type_specifier pd=plain_declarator '(' (p=parameters {para = $p.ret;})? ')'
+   cs=compound_statement
+  {$ret = new FunctionDefinition($ts.ret,$pd.ret,para,$cs.ret);}
 ;
 
 parameters returns[Parameters ret]
 locals[List<PlainDeclaration> list = new ArrayList<PlainDeclaration>(), boolean varpar = false]
 @after{$ret = new Parameters($list,$varpar);}
-: pd=plain_declaration {$list.add($pd.ret);} (',' pd=plain_declaration {$list.add($pd.ret);})* (',' '...'{$varpar = true;})?
+: pd=plain_declaration {$list.add($pd.ret);}
+  (',' pd=plain_declaration {$list.add($pd.ret);})* (',' '...'{$varpar = true;})?
 ;
 
 declarators returns[Declarators ret]
@@ -44,8 +49,9 @@ init_declarators returns[InitDeclarators ret]
 ;
 
 init_declarator returns[InitDeclarator ret]
-: d=declarator ('=' i=initializer)?
-  {$ret = new InitDeclarator($d.ret, $i.ret);}
+: {Initializer init = null;}
+  d=declarator ('=' i=initializer {init = $i.ret;})?
+  {$ret = new InitDeclarator($d.ret, init);}
 ;
 
 initializer returns[Initializer ret]
@@ -60,9 +66,13 @@ type_specifier returns[TypeSpecifier ret]
 | 'char' {$ret = new CharType();}
 | 'int'  {$ret = new IntType();}
 | typedef_name {$ret = new NameType($typedef_name.ret);}
-| {List<PlainDeclaration> pla = new ArrayList<PlainDeclaration>();}
-  sou=struct_or_union i=identifier? '{' (p=plain_declaration {pla.add($p.ret);})+ '}'
-  {$ret = new RecordType($sou.ret, $i.ret, pla);}
+| {
+    List<PlainDeclaration> pla = new ArrayList<PlainDeclaration>();
+    Id iden = null;
+  }
+  sou=struct_or_union (i=identifier {iden = $i.ret;})?
+  '{' (p=plain_declaration {pla.add($p.ret);})+ '}'
+  {$ret = new RecordType($sou.ret, iden, pla);}
 | sou=struct_or_union i=identifier
   {$ret = new RecordType($sou.ret, $i.ret, null);}
 ;
@@ -73,7 +83,6 @@ struct_or_union returns[StructUnion ret]
 ;
 
 
-//TODO
 plain_declaration returns[PlainDeclaration ret]
 : {List<Declarator> decl = new ArrayList<Declarator>();}
   t=type_specifier (d=declarator {decl.add($d.ret);})+
@@ -82,7 +91,9 @@ plain_declaration returns[PlainDeclaration ret]
 
 
 declarator returns [Declarator ret]
-: p1=plain_declarator '(' p2=parameters? ')' {$ret = new FunDeclarator($p1.ret,$p2.ret);}
+: {Parameters para = null;}
+  p1=plain_declarator '(' (p2=parameters {para = $p2.ret;} )? ')'
+  {$ret = new FunDeclarator($p1.ret, para);}
 | {List<ConstExpr> expr = new ArrayList<ConstExpr>();}
   p=plain_declarator ('[' c=constant_expression ']'{expr.add($c.ret);})*
   {$ret = new ArrDeclarator($p.ret,expr);}
@@ -102,30 +113,38 @@ statement returns[Stmt ret]
 ;
 
 expression_statement returns[ExprStmt ret]
-: e=expression? ';' {$ret = new ExprStmt($e.ret);}
+: {Expr expr = null;}
+  (e=expression {expr = $e.ret;})? ';' {$ret = new ExprStmt(expr);}
 ;
 
 compound_statement returns[CompStmt ret]
-locals [List<Declaration> dList = new ArrayList<Declaration>(), List<Stmt> sList= new ArrayList<Stmt>()]
+locals [List<Declaration> dList = new ArrayList<Declaration>(),
+ List<Stmt> sList= new ArrayList<Stmt>()]
 @after {$ret = new CompStmt($dList, $sList);}
 : '{' (d=declaration {$dList.add($d.ret);})* (s=statement {$sList.add($s.ret);})* '}'
 ;
 
 selection_statement returns[SelStmt ret]
-: 'if' '(' e=expression ')' s1=statement ('else' s2=statement)?
-  {$ret = new SelStmt($e.ret, $s1.ret, $s2.ret);}
+: {Stmt stmt = null;}
+  'if' '(' e=expression ')' s1=statement ('else' s2=statement {stmt = $s2.ret;})?
+  {$ret = new SelStmt($e.ret, $s1.ret, stmt);}
 ;
 
 iteration_statement returns [IterStmt ret]
 : 'while' '(' expression ')' statement {$ret = new WhileStmt($expression.ret, $statement.ret);}
-| 'for' '(' e1=expression? ';' e2=expression? ';' e3=expression? ')' s=statement
-  {$ret = new ForStmt($e1.ret, $e2.ret, $e3.ret, $s.ret);}
+| {Expr expr1 = null, expr2 = null, expr3 = null;}
+  'for' '(' (e1=expression {expr1 = $e1.ret;})? ';'
+    (e2=expression {expr2 = $e2.ret;})? ';'
+    (e3=expression {expr3 = $e3.ret;})? ')' s=statement
+  {$ret = new ForStmt(expr1, expr2, expr3, $s.ret);}
 ;
 
 jump_statement returns[JumpStmt ret]
 : 'continue' ';' {$ret = new ContinueStmt();}
 | 'break' ';' {$ret = new BreakStmt();}
-| 'return' expression? ';'{$ret = new ReturnStmt($expression.ret);}
+| {Expr expr = null;}
+  'return' (expression {expr = $expression.ret;})? ';'
+  {$ret = new ReturnStmt(expr);}
 ;
 
 expression returns[Expr ret]
@@ -137,7 +156,8 @@ locals[List<AssExpr> list = new ArrayList<AssExpr>()]
 
 assignment_expression returns[AssExpr ret]
 : l=logical_or_expression {$ret = new AssExpr($l.ret,null,null,null);}
-| u=unary_expression ao=assignment_operator ae=assignment_expression {$ret = new AssExpr(null,$u.ret,$ao.ret,$ae.ret);}
+| u=unary_expression ao=assignment_operator ae=assignment_expression
+  {$ret = new AssExpr(null,$u.ret,$ao.ret,$ae.ret);}
 ;
 
 assignment_operator returns[BinOp ret]
@@ -293,7 +313,9 @@ locals[ArrayList<Postfix> list = new ArrayList<Postfix>(), PriExpr exp]
 
 postfix returns[Postfix ret]
 : '[' expression ']' {$ret = new ArrPostfix($expression.ret);}
-| '(' arguments? ')' {$ret = new FunPostfix($arguments.ret);}
+|  {Arguments argu = null;}
+  '(' (arguments {argu = $arguments.ret;})? ')'
+  {$ret = new FunPostfix(argu);}
 | '.' identifier {$ret = new ValAttrPostfix($identifier.ret);}
 | '->' identifier {$ret = new PtrAttrPostfix($identifier.ret);}
 | '++' {$ret = new SelfIncPostfix();}

@@ -5,7 +5,7 @@ public class TypeName extends Expression {
 	public int starCount;
 
 	public TypeName(TypeSpecifier type, int starCount) {
-		super();
+		//super();
 		this.type = type;
 		this.starCount = starCount;
 	}
