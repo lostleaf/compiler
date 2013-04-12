@@ -1,6 +1,6 @@
 package compiler.type;
 
-public final class CHAR extends Type {
+public final class CHAR extends TYPE {
 
 	private static CHAR instance = null;
 

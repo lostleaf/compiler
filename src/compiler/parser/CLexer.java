@@ -1,6 +1,9 @@
 // Generated from C.g4 by ANTLR 4.0
 
-package compiler.parser;
+  package compiler.parser;
+  import compiler.absyn.*;
+  import compiler.symbol.*;
+  import static compiler.symbol.Symbol.symbol;
 
 import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.CharStream;
@@ -25,7 +28,8 @@ public class CLexer extends Lexer {
 		T__20=38, T__19=39, T__18=40, T__17=41, T__16=42, T__15=43, T__14=44, 
 		T__13=45, T__12=46, T__11=47, T__10=48, T__9=49, T__8=50, T__7=51, T__6=52, 
 		T__5=53, T__4=54, T__3=55, T__2=56, T__1=57, T__0=58, Whitespace=59, Multi_comment=60, 
-		Single_comment=61, Hex=62, Dec=63, Oct=64, Character=65, String=66, Identifier=67;
+		Single_comment=61, Hex=62, Dec=63, Oct=64, CharacterLiteral=65, StringLiteral=66, 
+		Identifier=67;
 	public static String[] modeNames = {
 		"DEFAULT_MODE"
 	};
@@ -39,7 +43,7 @@ public class CLexer extends Lexer {
 		"'+='", "'^='", "'else'", "'struct'", "'++'", "'>>'", "'^'", "'.'", "'+'", 
 		"'for'", "'typedef'", "'return'", "';'", "'&&'", "'||'", "'>'", "'%='", 
 		"'/='", "'=='", "'/'", "'~'", "'>='", "Whitespace", "Multi_comment", "Single_comment", 
-		"Hex", "Dec", "Oct", "Character", "String", "Identifier"
+		"Hex", "Dec", "Oct", "CharacterLiteral", "StringLiteral", "Identifier"
 	};
 	public static final String[] ruleNames = {
 		"T__57", "T__56", "T__55", "T__54", "T__53", "T__52", "T__51", "T__50", 
@@ -50,7 +54,8 @@ public class CLexer extends Lexer {
 		"T__17", "T__16", "T__15", "T__14", "T__13", "T__12", "T__11", "T__10", 
 		"T__9", "T__8", "T__7", "T__6", "T__5", "T__4", "T__3", "T__2", "T__1", 
 		"T__0", "Whitespace", "EOL", "Multi_comment", "Single_comment", "Hex", 
-		"Dec", "Oct", "Digit", "HexDigit", "Letter", "Character", "String", "Identifier"
+		"Dec", "Oct", "Digit", "HexDigit", "Letter", "CharacterLiteral", "StringLiteral", 
+		"Identifier"
 	};
 
 

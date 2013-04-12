@@ -2,9 +2,9 @@ package compiler.type;
 
 import compiler.symbol.Symbol;
 
-public abstract class Type {
+public abstract class TYPE {
 
-	public static final RECORD NULL = new RECORD(Symbol.valueOf("(null)"));
+	public static final RECORD NULL = new RECORD(Symbol.symbol("(null)"));
 	
 	public boolean isNull(){
 		return this == NULL;

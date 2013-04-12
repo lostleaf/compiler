@@ -1,8 +1,12 @@
 // Generated from C.g4 by ANTLR 4.0
 
-package compiler.parser;
+  package compiler.parser;
+  import compiler.absyn.*;
+  import compiler.symbol.*;
+  import static compiler.symbol.Symbol.symbol;
 
-import org.antlr.v4.runtime.tree.ParseTreeListener;
+import org.antlr.v4.runtime.tree.*;
+import org.antlr.v4.runtime.Token;
 
 public interface CListener extends ParseTreeListener {
 	void enterExpression(CParser.ExpressionContext ctx);
@@ -92,6 +96,9 @@ public interface CListener extends ParseTreeListener {
 	void enterInclusive_or_expression(CParser.Inclusive_or_expressionContext ctx);
 	void exitInclusive_or_expression(CParser.Inclusive_or_expressionContext ctx);
 
+	void enterStringExpr(CParser.StringExprContext ctx);
+	void exitStringExpr(CParser.StringExprContext ctx);
+
 	void enterConstant_expression(CParser.Constant_expressionContext ctx);
 	void exitConstant_expression(CParser.Constant_expressionContext ctx);
 
@@ -151,9 +158,6 @@ public interface CListener extends ParseTreeListener {
 
 	void enterPrimary_expression(CParser.Primary_expressionContext ctx);
 	void exitPrimary_expression(CParser.Primary_expressionContext ctx);
-
-	void enterString(CParser.StringContext ctx);
-	void exitString(CParser.StringContext ctx);
 
 	void enterType_specifier(CParser.Type_specifierContext ctx);
 	void exitType_specifier(CParser.Type_specifierContext ctx);

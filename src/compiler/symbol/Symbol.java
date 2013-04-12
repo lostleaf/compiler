@@ -23,7 +23,7 @@ public class Symbol {
 	
 	private static java.util.Map<String, Symbol> dict = new java.util.HashMap<String, Symbol>();
 	
-	public static synchronized Symbol valueOf(String n) {
+	public static synchronized Symbol symbol(String n) {
 		final String u = n.intern();
 		Symbol s = dict.get(u);
 		if (s == null) {

@@ -1,6 +1,6 @@
 package compiler.type;
 
-public final class STRING extends Type {
+public final class STRING extends TYPE {
 
 	private static STRING instance = null;
 

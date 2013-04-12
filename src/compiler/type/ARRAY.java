@@ -1,17 +1,17 @@
 package compiler.type;
 
-public final class ARRAY extends Type {
+public final class ARRAY extends POINTER {
+	int capacity;
 
-	public Type elementType;
-
-	public ARRAY(Type type) {
-		elementType = type;
+	public ARRAY(TYPE type, int cap) {
+		super(type);
+		capacity = cap;
 	}
 
 	@Override
 	public boolean equals(Object other) {
 		if (other instanceof ARRAY) {
-			return elementType.equals(((ARRAY) other).elementType);
+			return type.equals(((ARRAY) other).type);
 		}
 		return false;
 	}
@@ -25,6 +25,5 @@ public final class ARRAY extends Type {
 	public boolean isRecord() {
 		return false;
 	}
-	
-	
+
 }

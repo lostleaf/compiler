@@ -7,15 +7,15 @@ import compiler.symbol.Symbol;
 
 
 
-public final class RECORD extends Type {
+public class RECORD extends TYPE {
 
 	public static final class RecordField {
 
-		public Type type;
+		public TYPE type;
 		public Symbol name;
 		public int index;
 
-		public RecordField(Type type, Symbol name, int index) {
+		public RecordField(TYPE type, Symbol name, int index) {
 			this.type = type;
 			this.name = name;
 			this.index = index;

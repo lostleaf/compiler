@@ -1,6 +1,6 @@
 package compiler.type;
 
-public final class INT extends Type {
+public final class INT extends TYPE {
 
 	private static INT instance = null;
 
