@@ -2,7 +2,8 @@
 
 package parser;
 
-import org.antlr.v4.runtime.tree.ParseTreeListener;
+import org.antlr.v4.runtime.tree.*;
+import org.antlr.v4.runtime.Token;
 
 public interface CListener extends ParseTreeListener {
 	void enterExpression(CParser.ExpressionContext ctx);
