@@ -7,13 +7,13 @@ public class UnaryExpr extends Expression {
 	final public static int UNARYOP = 3; // unary_operator cast_expression
 	final public static int SIZEUEXP = 4; // 'sizeof' unary_expression
 	final public static int SIZETYNAME = 5; // 'sizeof' '(' type_name ')'
-	int type = -123456;
+	int exprType = -123456;
 	public Expression expr;
 	public UnaryOp op;
 
 	public UnaryExpr(int type, Expression expr) {
 		super();
-		this.type = type;
+		this.exprType = type;
 		this.expr = expr;
 	}
 

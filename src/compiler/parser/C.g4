@@ -301,7 +301,7 @@ unary_operator  returns[UnaryOp ret]
 | '*' {$ret = UnaryOp.STAR;}
 | '+' {$ret = UnaryOp.PLUS;}
 | '-' {$ret = UnaryOp.MINUS;}
-| '~' {$ret = UanryOp.TILDE;}
+| '~' {$ret = UnaryOp.TILDE;}
 | '!' {$ret = UnaryOp.NOT;}
 ;
 
@@ -374,7 +374,7 @@ Multi_comment : '/*' .*? '*/' -> channel(HIDDEN);
 Single_comment : '//' ~[\r\n]* (EOL) -> channel(HIDDEN);
 
 Hex : '0' ('x'|'X') HexDigit+ ;
-Dec : '0' | ('1'..'9' Digit+)  ;
+Dec : '0' | ('1'..'9' Digit*)  ;
 Oct : '0' ('0'..'7')+  ;
 
 fragment Digit : '0'..'9';
