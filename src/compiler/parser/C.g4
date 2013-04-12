@@ -301,7 +301,7 @@ unary_operator  returns[UnaryOp ret]
 | '*' {$ret = UnaryOp.STAR;}
 | '+' {$ret = UnaryOp.PLUS;}
 | '-' {$ret = UnaryOp.MINUS;}
-| '~' {$ret = UnaryOp.TILDE;}
+| '~' {$ret = UanryOp.TILDE;}
 | '!' {$ret = UnaryOp.NOT;}
 ;
 

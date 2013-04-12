@@ -1,9 +1,9 @@
 package compiler.absyn;
 
 public class Declaration extends Node {
-	TypeSpecifier typeSpecifier = null;
-	Declarators declarators = null;
-	InitDeclarators initDeclarators = null;
+	public TypeSpecifier typeSpecifier = null;
+	public Declarators declarators = null;
+	public InitDeclarators initDeclarators = null;
 
 	public Declaration(TypeSpecifier t, Declarators d) {
 		typeSpecifier = t;

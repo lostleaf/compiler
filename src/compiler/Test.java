@@ -2,12 +2,10 @@ package compiler;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.PrintWriter;
 import java.util.Scanner;
 
 import org.antlr.v4.runtime.ANTLRFileStream;
 import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.Token;
 
 import com.google.gson.Gson;
 import compiler.absyn.Program;
@@ -16,7 +14,7 @@ import compiler.parser.CParser;
 import compiler.parser.CParser.ProgramContext;
 
 public class Test {
-	final static String filename = "example2.c";
+	final static String filename = "5090379042-jiaxiao-factor.c";
 
 	public static void doit() throws Exception {
 		CommonTokenStream cts = new CommonTokenStream(new CLexer(
