@@ -1,10 +1,12 @@
 package compiler.type;
 
-public final class NAME extends TYPE {
-	String name;
+import compiler.symbol.Symbol;
 
-	public NAME(String name) {
-		this.name = name;
+public final class NAME extends TYPE {
+	public Symbol symbol;
+
+	public NAME(Symbol symbol) {
+		this.symbol = symbol;
 	}
 
 	@Override

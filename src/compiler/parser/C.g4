@@ -4,6 +4,7 @@ grammar C;
   package compiler.parser;
   import compiler.absyn.*;
   import compiler.symbol.*;
+  import compiler.util.Pair;
   import static compiler.symbol.Symbol.symbol;
 }
 
@@ -67,12 +68,14 @@ type_specifier returns[TypeSpecifier ret]
 | 'int'  {$ret = new IntType();}
 | typedef_name {$ret = new NameType($typedef_name.ret);}
 | {
-    List<PlainDeclaration> pla = new ArrayList<PlainDeclaration>();
+    List< Pair<TypeSpecifier, Declarators> > pairs =
+     new ArrayList< Pair<TypeSpecifier, Declarators> >();
     Id iden = null;
   }
   sou=struct_or_union (i=identifier {iden = $i.ret;})?
-  '{' (p=plain_declaration {pla.add($p.ret);})+ '}'
-  {$ret = new RecordType($sou.ret, iden, pla);}
+  '{' (t=type_specifier d=declarators ';'
+      {pairs.add(new Pair<TypeSpecifier, Declarators>($t.ret, $d.ret));} )+ '}'
+  {$ret = new RecordType($sou.ret, iden, pairs);}
 | sou=struct_or_union i=identifier
   {$ret = new RecordType($sou.ret, $i.ret, null);}
 ;
@@ -84,9 +87,9 @@ struct_or_union returns[StructUnion ret]
 
 
 plain_declaration returns[PlainDeclaration ret]
-: {List<Declarator> decl = new ArrayList<Declarator>();}
-  t=type_specifier (d=declarator {decl.add($d.ret);})+
-  {$ret = new PlainDeclaration($t.ret,decl);}
+:
+  t=type_specifier d=declarator
+  {$ret = new PlainDeclaration($t.ret,$d.ret);}
 ;
 
 

@@ -2,17 +2,19 @@ package compiler.absyn;
 
 import java.util.List;
 
+import compiler.util.Pair;
+
 public class RecordType extends TypeSpecifier {
-	StructUnion structUnion;
-	Id id;
-	List<PlainDeclaration> plainDeclaration;
+	public StructUnion structUnion;
+	public Id id;
+	public List<Pair<TypeSpecifier, Declarators>> pairs;
 
 	public RecordType(StructUnion structUnion, Id id,
-			List<PlainDeclaration> plainDeclaration) {
+			List<Pair<TypeSpecifier, Declarators>> pairs) {
 		super();
 		this.structUnion = structUnion;
 		this.id = id;
-		this.plainDeclaration = plainDeclaration;
+		this.pairs = pairs;
 	}
 
 }

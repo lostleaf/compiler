@@ -3,6 +3,7 @@
   package compiler.parser;
   import compiler.absyn.*;
   import compiler.symbol.*;
+  import compiler.util.Pair;
   import static compiler.symbol.Symbol.symbol;
 
 import org.antlr.v4.runtime.Lexer;
