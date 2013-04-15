@@ -3,6 +3,7 @@ package compiler.env;
 import compiler.symbol.Symbol;
 import compiler.symbol.Table;
 import compiler.type.CHAR;
+import compiler.type.FUNCTION;
 import compiler.type.INT;
 import compiler.type.RECORD;
 import compiler.type.TYPE;
@@ -11,17 +12,23 @@ import compiler.type.VOID;
 public final class Env {
 	public Table typeEnv = null;
 	public Table funcEnv = null;
+	public Table idenEnv = null;
 
 	public Env() {
-		initTEnv();
-		initVEnv();
+		initTypeEnv();
+		initFuncEnv();
+		initIdenEnv();
+	}
+
+	private void initIdenEnv() {
+		idenEnv = new Table();
 	}
 
 	private static Symbol sym(String n) {
 		return Symbol.symbol(n);
 	}
 
-	private void initTEnv() {
+	private void initTypeEnv() {
 		typeEnv = new Table();
 		typeEnv.put(sym("int"), INT.getInstance());
 		typeEnv.put(sym("char"), CHAR.getInstance());
@@ -32,18 +39,32 @@ public final class Env {
 	 * All "library" functions are declared at the outermost level, which does
 	 * not contain a frame or formal parameter list.
 	 */
-	private void initVEnv() {
+	private void initFuncEnv() {
 		funcEnv = new Table();
 	}
 
 	public void beginScope() {
 		funcEnv.beginScope();
 		typeEnv.beginScope();
+		idenEnv.beginScope();
 	}
 
 	public void endScope() {
 		funcEnv.endScope();
 		typeEnv.endScope();
+		idenEnv.endScope();
+	}
+
+	public void putIden(TYPE type, Symbol name) {
+		idenEnv.put(name, type);
+	}
+
+	public void putType(TYPE type, Symbol name) {
+		typeEnv.put(name, type);
+	}
+
+	public void putFunc(FUNCTION f, Symbol name) {
+		funcEnv.put(name, f);
 	}
 
 	public TYPE getByTypedefName(Symbol name) {

@@ -58,7 +58,7 @@ init_declarator returns[InitDeclarator ret]
 initializer returns[Initializer ret]
 : assignment_expression {$ret = new Initializer($assignment_expression.ret, null);}
 | {List<Initializer> ini = new ArrayList<Initializer>();}
-  '{' (initializer {ini.add($initializer.ret);} )+ '}'
+  '{' in=initializer {ini.add($in.ret);} (',' in=initializer {ini.add($in.ret);})* '}'
   {$ret = new Initializer(null, ini);}
 ;
 

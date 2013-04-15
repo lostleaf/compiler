@@ -7,7 +7,7 @@ import compiler.type.TYPE;
 public class ArrayBuilder {
 
 	public static ARRAY build(TYPE t, int starCount, int exprCount) {
-		// TODO unknown capacity
+		// FIXME unknown capacity
 		for (int i = 0; i < starCount; i++)
 			t = new POINTER(t);
 		for (int i = 0; i < exprCount; i++)

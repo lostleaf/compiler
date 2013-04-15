@@ -5,20 +5,16 @@ import java.util.List;
 
 import compiler.symbol.Symbol;
 
-
-
 public class RECORD extends TYPE {
 
 	public static final class RecordField {
 
 		public TYPE type;
 		public Symbol name;
-		public int index;
 
-		public RecordField(TYPE type, Symbol name, int index) {
+		public RecordField(TYPE type, Symbol name) {
 			this.type = type;
 			this.name = name;
-			this.index = index;
 		}
 	}
 
@@ -28,6 +24,10 @@ public class RECORD extends TYPE {
 	public RECORD(Symbol name) {
 		fields = new ArrayList<RecordField>();
 		this.name = name;
+	}
+
+	public void addField(TYPE type, Symbol name) {
+		fields.add(new RecordField(type, name));
 	}
 
 	@Override
