@@ -4,36 +4,63 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
+import compiler.absyn.AddExpr;
+import compiler.absyn.AndExpr;
 import compiler.absyn.ArrDeclarator;
+import compiler.absyn.ArrPostfix;
 import compiler.absyn.AssExpr;
+import compiler.absyn.BinOp;
+import compiler.absyn.BreakStmt;
+import compiler.absyn.CastExpr;
 import compiler.absyn.CharType;
 import compiler.absyn.CompStmt;
 import compiler.absyn.ConstExpr;
+import compiler.absyn.ContinueStmt;
 import compiler.absyn.Declaration;
 import compiler.absyn.Declarator;
 import compiler.absyn.Declarators;
+import compiler.absyn.EquExpr;
+import compiler.absyn.ExOrExpr;
 import compiler.absyn.Expr;
 import compiler.absyn.ExprStmt;
 import compiler.absyn.ForStmt;
 import compiler.absyn.FunDeclarator;
+import compiler.absyn.FunPostfix;
 import compiler.absyn.FunctionDefinition;
 import compiler.absyn.Id;
+import compiler.absyn.InOrExpr;
 import compiler.absyn.InitDeclarator;
 import compiler.absyn.InitDeclarators;
 import compiler.absyn.Initializer;
 import compiler.absyn.IntType;
 import compiler.absyn.IterStmt;
 import compiler.absyn.JumpStmt;
+import compiler.absyn.LogAndExpr;
+import compiler.absyn.LogOrExpr;
+import compiler.absyn.MulExpr;
 import compiler.absyn.NameType;
 import compiler.absyn.Node;
 import compiler.absyn.Parameters;
 import compiler.absyn.PlainDeclaration;
+import compiler.absyn.PostExpr;
+import compiler.absyn.Postfix;
+import compiler.absyn.PriExpr;
 import compiler.absyn.Program;
+import compiler.absyn.PtrAttrPostfix;
 import compiler.absyn.RecordType;
+import compiler.absyn.RelExpr;
+import compiler.absyn.ReturnStmt;
 import compiler.absyn.SelStmt;
+import compiler.absyn.SelfDecPostfix;
+import compiler.absyn.SelfIncPostfix;
+import compiler.absyn.ShiftExpr;
 import compiler.absyn.Stmt;
 import compiler.absyn.StructUnion;
+import compiler.absyn.TypeName;
 import compiler.absyn.TypeSpecifier;
+import compiler.absyn.UnaryExpr;
+import compiler.absyn.UnaryOp;
+import compiler.absyn.ValAttrPostfix;
 import compiler.absyn.VoidType;
 import compiler.absyn.WhileStmt;
 import compiler.builder.ArrayBuilder;
@@ -43,6 +70,8 @@ import compiler.symbol.Symbol;
 import compiler.type.CHAR;
 import compiler.type.FUNCTION;
 import compiler.type.INT;
+import compiler.type.NAME;
+import compiler.type.POINTER;
 import compiler.type.RECORD;
 import compiler.type.STRUCT;
 import compiler.type.TYPE;
@@ -269,33 +298,51 @@ public class Semantic {
 	}
 
 	private TYPE checkJumpStmt(JumpStmt stmt) {
-		// TODO Auto-generated method stub
+		if (stmt instanceof ContinueStmt && loopCount == 0)
+			error("continue out of loop");
+		if (stmt instanceof BreakStmt && loopCount == 0)
+			error("break out of loop");
+		if (stmt instanceof ReturnStmt) {
+			ReturnStmt r = (ReturnStmt) stmt;
+			if (r.expr != null)
+				return checkExpr(r.expr);
+		}
 		return null;
 	}
 
 	private TYPE checkIterStmt(IterStmt stmt) {
-		//FIXME no consideration about return
+		// FIXME no consideration about return
 		loopCount++;
-		if(stmt instanceof ForStmt)
+		if (stmt instanceof ForStmt)
 			checkForStmt((ForStmt) stmt);
-		if(stmt instanceof WhileStmt)
+		if (stmt instanceof WhileStmt)
 			checkWhileStmt((WhileStmt) stmt);
 		loopCount--;
 		return null;
 	}
 
 	private void checkWhileStmt(WhileStmt stmt) {
-		// TODO Auto-generated method stub
-		
+		TYPE condType = checkExpr(stmt.cond);
+		if (condType == null || condType == VOID.getInstance())
+			error("wrong type condition of while");
+		checkStmt(stmt.stmt);
 	}
 
 	private void checkForStmt(ForStmt stmt) {
-		// TODO Auto-generated method stub
-		
+		if (stmt.begin != null)
+			checkExpr(stmt.begin);
+		if (stmt.cond != null) {
+			TYPE condType = checkExpr(stmt.cond);
+			if (condType == null || condType == VOID.getInstance())
+				error("wrong type condition of while");
+		}
+		if (stmt.end != null)
+			checkExpr(stmt.end);
+		checkStmt(stmt.stmt);
 	}
 
 	private TYPE checkSelStmt(SelStmt stmt) {
-		//FIXME no consideration about return 
+		// FIXME no consideration about return
 		TYPE condType = checkExpr(stmt.cond);
 		if (condType == null || condType == VOID.getInstance())
 			error("not correct type of condition");
@@ -323,18 +370,299 @@ public class Semantic {
 	}
 
 	private TYPE checkConstExpr(ConstExpr constExpr) {
-		// TODO Auto-generated method stub
-		return null;
+		return checkLogOrExpr(constExpr.logOrExpr);
 	}
 
 	private TYPE checkExpr(Expr expr) {
+		TYPE ret = null;
+		for (AssExpr e : expr.assExpr)
+			ret = checkAssExpr(e);
+		return ret;
+	}
+
+	private TYPE checkAssExpr(AssExpr assExpr) {
+		// FIXME may have to check is left value
+		if (assExpr.logOrExpr != null)
+			return checkLogOrExpr(assExpr.logOrExpr);
+		else {
+			TYPE lType = checkUnaryExpr(assExpr.unaryExpr);
+			TYPE rType = checkAssExpr(assExpr.assExpr);
+			if (lType == null || rType == null)
+				return null;
+
+			if (assExpr.op == BinOp.ASSIGN) {
+				if (lType instanceof POINTER && rType instanceof POINTER)
+					if (!((POINTER) lType).equals((POINTER) rType)) {
+						error("A pointer can only be assigned to a pointer");
+						return null;
+					} else {
+						return lType;
+					}
+				if (!(lType.equals(rType) || (!(lType instanceof RECORD || lType instanceof POINTER) && !(rType instanceof RECORD)))) {
+					error("assignment with wrong operands");
+					return null;
+				}
+				return lType;
+			} else {
+				if ((lType instanceof POINTER || lType instanceof FUNCTION)
+						&& (rType instanceof POINTER || rType instanceof FUNCTION)) {
+					error("assignment with wrong operands");
+					return null;
+				}
+				if (!(lType instanceof RECORD)
+						&& (rType instanceof INT || rType instanceof CHAR)) {
+					return lType;
+				}
+				if (lType.equals(rType)) {
+					return lType;
+				}
+				error("assignment with wrong operands");
+				return null;
+			}
+
+		}
+	}
+
+	private TYPE checkLogOrExpr(LogOrExpr logOrExpr) {
+		for (LogAndExpr e : logOrExpr.expr) {
+			TYPE t = checkLogAndExpr(e);
+			if (t == null)
+				return null;
+			if (t instanceof RECORD)
+				error("record in logical or");
+		}
+		return INT.getInstance();
+	}
+
+	private TYPE checkLogAndExpr(LogAndExpr logAndExpr) {
+		for (InOrExpr e : logAndExpr.expr) {
+			TYPE t = checkInOrExpr(e);
+			if (t == null)
+				return null;
+			if (t instanceof RECORD)
+				error("record in logical and");
+		}
+		return INT.getInstance();
+	}
+
+	private TYPE checkInOrExpr(InOrExpr inOrExpr) {
+		for (ExOrExpr e : inOrExpr.expr) {
+			TYPE t = checkExOrExpr(e);
+			if (t == null)
+				return null;
+			if (t instanceof RECORD || t instanceof POINTER
+					|| t instanceof FUNCTION)
+				error("inclusiveOr operator with unmatching operands");
+		}
+		return INT.getInstance();
+	}
+
+	private TYPE checkExOrExpr(ExOrExpr exOrExpr) {
+		for (AndExpr e : exOrExpr.expr) {
+			TYPE t = checkAndExpr(e);
+			if (t == null)
+				return null;
+			if (t instanceof RECORD || t instanceof POINTER
+					|| t instanceof FUNCTION)
+				error("exclusiveOr operator with unmatching operands");
+		}
+		return INT.getInstance();
+	}
+
+	private TYPE checkAndExpr(AndExpr andExpr) {
+		for (EquExpr e : andExpr.expr) {
+			TYPE t = checkEquExpr(e);
+			if (t == null)
+				return null;
+			if (t instanceof RECORD || t instanceof POINTER
+					|| t instanceof FUNCTION)
+				error("and operator with unmatching operands");
+		}
+		return INT.getInstance();
+	}
+
+	private TYPE checkEquExpr(EquExpr equExpr) {
+		for (RelExpr e : equExpr.expr) {
+			TYPE t = checkRelExpr(e);
+			if (t == null)
+				return null;
+			if (t instanceof RECORD || t instanceof NAME)
+				error("equality operator with unmatching operands");
+		}
+		return INT.getInstance();
+	}
+
+	private TYPE checkRelExpr(RelExpr relExpr) {
+		for (ShiftExpr e : relExpr.expr) {
+			TYPE t = checkShiftExpr(e);
+			if (t == null)
+				return null;
+			if (t instanceof RECORD || t instanceof NAME)
+				error("relation operator with unmatching operands");
+		}
+		return INT.getInstance();
+	}
+
+	private TYPE checkShiftExpr(ShiftExpr shiftExpr) {
+		for (AddExpr e : shiftExpr.expr) {
+			TYPE t = checkAddExpr(e);
+			if (t == null)
+				return null;
+			if (!(t instanceof INT) && !(t instanceof CHAR))
+				error("shift operator with unmatching operands");
+		}
+		return INT.getInstance();
+	}
+
+	private TYPE checkAddExpr(AddExpr addExpr) {
+		TYPE retnType = null;
+
+		for (int i = 0; i < addExpr.expr.size(); i++) {
+			MulExpr m = addExpr.expr.get(i);
+			TYPE t = checkMulExpr(m);
+			if (retnType == null) {
+				retnType = t;
+				continue;
+			}
+			if ((retnType instanceof INT || retnType instanceof CHAR)
+					&& (t instanceof INT || t instanceof CHAR)) {
+				retnType = INT.getInstance();
+				continue;
+			}
+			if ((retnType instanceof POINTER || (retnType instanceof FUNCTION && ((FUNCTION) retnType).defined))
+					&& (t instanceof INT || t instanceof CHAR))
+				continue;
+			if (addExpr.op.get(i) == BinOp.ADD
+					&& (t instanceof POINTER || (t instanceof FUNCTION && ((FUNCTION) t).defined))
+					&& (retnType instanceof INT || retnType instanceof CHAR)) {
+				retnType = t;
+				continue;
+			}
+			error("add operator with unmatching operands");
+		}
+		return retnType;
+	}
+
+	private TYPE checkMulExpr(MulExpr mulExpr) {
+		for (CastExpr e : mulExpr.expr) {
+			TYPE t = checkCastExpr(e);
+			if (t == null)
+				return null;
+			if (!(t instanceof INT) && !(t instanceof CHAR))
+				error("mul operator with unmatching operands");
+		}
+		return INT.getInstance();
+	}
+
+	private TYPE checkCastExpr(CastExpr castExpr) {
+		if (castExpr.expression instanceof UnaryExpr)
+			return checkUnaryExpr((UnaryExpr) castExpr.expression);
+		return checkTypeName(castExpr.typeName);
+	}
+
+	private TYPE checkUnaryExpr(UnaryOp op, TYPE t) {
+		if (t == null)
+			return null;
+		if (op == UnaryOp.AND)
+			return new POINTER(t);
+		if (op == UnaryOp.STAR) {
+			if (!(t instanceof POINTER))
+				error("a pointer needed in unary expression");
+			else {
+				if (((POINTER) t).elementType instanceof VOID)
+					error("get value form a void pointer");
+				else
+					return ((POINTER) t).elementType;
+			}
+		}
+
+		if (op == UnaryOp.AND || op == UnaryOp.MINUS || op == UnaryOp.TILDE) {
+			if (!(t instanceof INT) && !(t instanceof CHAR))
+				error("unary plus or minus or tilde before neither a int nor char");
+			else
+				return t;
+		}
+
+		if (op == UnaryOp.NOT) {
+			if (t instanceof FUNCTION)
+				error("unary not before a function type");
+			else
+				return INT.getInstance();
+		}
+		return null;
+
+	}
+
+	private TYPE checkUnaryExpr(UnaryExpr unaryExpr) {
+		if (unaryExpr.exprType == UnaryExpr.POSTEXP)
+			return checkPostExpr((PostExpr) unaryExpr.expr);
+		if (unaryExpr.exprType == UnaryExpr.PREDEC
+				|| unaryExpr.exprType == UnaryExpr.PREINC)
+			return checkUnaryExpr((UnaryExpr) unaryExpr.expr);
+		if (unaryExpr.exprType == UnaryExpr.UNARYOP) {
+			CastExpr c = (CastExpr) unaryExpr.expr;
+			TYPE t = checkCastExpr(c);
+			return checkUnaryExpr(unaryExpr.op, t);
+		}
+		if (unaryExpr.exprType == UnaryExpr.SIZETYNAME
+				|| unaryExpr.exprType == UnaryExpr.SIZEUEXP)
+			return INT.getInstance();
+		return null;
+	}
+
+	private TYPE checkPostExpr(PostExpr expr) {
+		TYPE t = checkPriExpr(expr.priExpr);
+		return checkPostfixs(t, expr.postfix);
+	}
+
+	private TYPE checkPostfixs(TYPE t, List<Postfix> list) {
+		for (Postfix p : list) {
+			if (p instanceof ArrPostfix)
+				t = checkArrPostfix(t, (ArrPostfix) p);
+			if (p instanceof FunPostfix)
+				t = checkFunPostfix(t, (FunPostfix) p);
+			if (p instanceof ValAttrPostfix)
+				t = checkValAttrPostfix(t, (ValAttrPostfix) p);
+			if (p instanceof PtrAttrPostfix)
+				t = checkPtrAttrPostfix(t, (PtrAttrPostfix) p);
+			if (p instanceof SelfIncPostfix || p instanceof SelfDecPostfix) {
+				if (t instanceof FUNCTION || t instanceof RECORD)
+					error("self inc or dec with wrong type");
+			}
+		}
+		return null;
+	}
+
+	private TYPE checkPtrAttrPostfix(TYPE t, PtrAttrPostfix p) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	private TYPE checkAssExpr(AssExpr assExpr) {
+	private TYPE checkValAttrPostfix(TYPE t, ValAttrPostfix p) {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	private TYPE checkFunPostfix(TYPE t, FunPostfix p) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	private TYPE checkArrPostfix(TYPE t, ArrPostfix p) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	private TYPE checkPriExpr(PriExpr priExpr) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	private TYPE checkTypeName(TypeName typeName) {
+		TYPE t = checkTypeSpecifier(typeName.typeSpecifier);
+		for (int i = 0; i < typeName.starCount; i++)
+			t = new POINTER(t);
+		return t;
 	}
 
 	private boolean canCast(TYPE fromType, TYPE toType) {

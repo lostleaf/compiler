@@ -11,7 +11,7 @@ public final class ARRAY extends POINTER {
 	@Override
 	public boolean equals(Object other) {
 		if (other instanceof ARRAY) {
-			return type.equals(((ARRAY) other).type);
+			return elementType.equals(((ARRAY) other).elementType);
 		}
 		return false;
 	}

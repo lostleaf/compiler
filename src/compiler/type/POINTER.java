@@ -1,10 +1,10 @@
 package compiler.type;
 
 public class POINTER extends TYPE {
-	TYPE type;
+	public TYPE elementType;
 
 	public POINTER(TYPE type) {
-		this.type = type;
+		this.elementType = type;
 	}
 
 	@Override
