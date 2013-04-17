@@ -12,9 +12,11 @@ import compiler.absyn.AssExpr;
 import compiler.absyn.BinOp;
 import compiler.absyn.BreakStmt;
 import compiler.absyn.CastExpr;
+import compiler.absyn.CharConst;
 import compiler.absyn.CharType;
 import compiler.absyn.CompStmt;
 import compiler.absyn.ConstExpr;
+import compiler.absyn.Constant;
 import compiler.absyn.ContinueStmt;
 import compiler.absyn.Declaration;
 import compiler.absyn.Declarator;
@@ -23,6 +25,7 @@ import compiler.absyn.EquExpr;
 import compiler.absyn.ExOrExpr;
 import compiler.absyn.Expr;
 import compiler.absyn.ExprStmt;
+import compiler.absyn.Expression;
 import compiler.absyn.ForStmt;
 import compiler.absyn.FunDeclarator;
 import compiler.absyn.FunPostfix;
@@ -32,6 +35,7 @@ import compiler.absyn.InOrExpr;
 import compiler.absyn.InitDeclarator;
 import compiler.absyn.InitDeclarators;
 import compiler.absyn.Initializer;
+import compiler.absyn.IntConst;
 import compiler.absyn.IntType;
 import compiler.absyn.IterStmt;
 import compiler.absyn.JumpStmt;
@@ -55,6 +59,7 @@ import compiler.absyn.SelfDecPostfix;
 import compiler.absyn.SelfIncPostfix;
 import compiler.absyn.ShiftExpr;
 import compiler.absyn.Stmt;
+import compiler.absyn.StringExpr;
 import compiler.absyn.StructUnion;
 import compiler.absyn.TypeName;
 import compiler.absyn.TypeSpecifier;
@@ -67,6 +72,7 @@ import compiler.builder.ArrayBuilder;
 import compiler.builder.FunctionBuilder;
 import compiler.env.Env;
 import compiler.symbol.Symbol;
+import compiler.type.ARRAY;
 import compiler.type.CHAR;
 import compiler.type.FUNCTION;
 import compiler.type.INT;
@@ -688,12 +694,39 @@ public class Semantic {
 	}
 
 	private TYPE checkArrPostfix(TYPE t, ArrPostfix p) {
-		// TODO Auto-generated method stub
+		if (t == null)
+			return null;
+		if (!(t instanceof ARRAY))
+			error("ArrPostfix need an array");
+		else {
+			TYPE type = checkExpr((Expr) p.expression);
+			if (!(type instanceof INT) && !(type instanceof CHAR))
+				error("wrong type of array index");
+			return ((ARRAY) t).elementType;
+		}
 		return null;
 	}
 
 	private TYPE checkPriExpr(PriExpr priExpr) {
-		// TODO Auto-generated method stub
+		Expression e = priExpr.exp;
+		if (e instanceof Id) {
+			TYPE t = env.getByIdenName(((Id) e).symbol);
+			if (t == null)
+				error("undefined identifier");
+			return t;
+		}
+		if (e instanceof Constant) {
+			if (e instanceof IntConst)
+				return INT.getInstance();
+			if (e instanceof CharConst)
+				return CHAR.getInstance();
+		}
+		if (e instanceof StringExpr) {
+			return new ARRAY(CHAR.getInstance(),
+					((StringExpr) e).value.length());
+		}
+		if (e instanceof Expr)
+			return checkExpr((Expr) e);
 		return null;
 	}
 

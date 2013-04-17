@@ -85,4 +85,11 @@ public final class Env {
 		}
 		return (RECORD) obj;
 	}
+
+	public TYPE getByIdenName(Symbol name) {
+		Object obj = idenEnv.get(name);
+		if (obj == null)
+			return null;
+		return (TYPE) obj;
+	}
 }
