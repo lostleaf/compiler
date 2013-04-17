@@ -630,22 +630,61 @@ public class Semantic {
 					error("self inc or dec with wrong type");
 			}
 		}
-		return null;
+		return t;
 	}
 
 	private TYPE checkPtrAttrPostfix(TYPE t, PtrAttrPostfix p) {
-		// TODO Auto-generated method stub
+		if (t == null || p.identifier == null)
+			return null;
+		if (t instanceof POINTER) {
+			t = ((POINTER) t).elementType;
+			if (t instanceof RECORD) {
+				RECORD r = (RECORD) t;
+				for (RECORD.RecordField field : r.fields)
+					if (field.name.equals(p.identifier.symbol))
+						return field.type;
+				error("field missing");
+			} else
+				error("-> need pointer to a record");
+
+		} else
+			error("-> to not a pointer");
 		return null;
 	}
 
 	private TYPE checkValAttrPostfix(TYPE t, ValAttrPostfix p) {
-		// TODO Auto-generated method stub
+		if (t == null || p.identifier == null)
+			return null;
+
+		if (t instanceof RECORD) {
+			RECORD r = (RECORD) t;
+			for (RECORD.RecordField field : r.fields)
+				if (field.name.equals(p.identifier.symbol))
+					return field.type;
+			error("field missing");
+		} else
+			error(". need  a record");
+
 		return null;
 	}
 
 	private TYPE checkFunPostfix(TYPE t, FunPostfix p) {
-		// TODO Auto-generated method stub
+		if (t == null)
+			return null;
+		if (!(t instanceof FUNCTION))
+			error("function postfix need a function");
+		else {
+			if (isParaMatch((FUNCTION) t, p.arguments.assExpr))
+				return ((FUNCTION) t).getFinalReturnType();
+			else
+				error("params unmatch");
+		}
 		return null;
+	}
+
+	private boolean isParaMatch(FUNCTION t, List<AssExpr> assExpr) {
+		// TODO Auto-generated method stub
+		return true;
 	}
 
 	private TYPE checkArrPostfix(TYPE t, ArrPostfix p) {
