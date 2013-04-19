@@ -6,13 +6,13 @@ import compiler.type.TYPE;
 
 public class ArrayBuilder {
 
-	public static ARRAY build(TYPE t, int starCount, int exprCount) {
+	public static TYPE build(TYPE t, int starCount, int exprCount) {
 		// FIXME unknown capacity
 		for (int i = 0; i < starCount; i++)
 			t = new POINTER(t);
 		for (int i = 0; i < exprCount; i++)
 			t = new ARRAY(t, 0);
-		return (ARRAY) t;
+		return  t;
 	}
 
 }

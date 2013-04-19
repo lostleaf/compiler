@@ -12,22 +12,37 @@ import compiler.absyn.Program;
 import compiler.parser.CLexer;
 import compiler.parser.CParser;
 import compiler.parser.CParser.ProgramContext;
+import compiler.semantic.Semantic;
+import compiler.util.Error;
 
 public class Test {
-	final static String filename = "5090379042-jiaxiao-factor.c";
+	final static String filename = "5100379071-puyouer-lvalue2.c";
+	final static String foldername = "testcases";
 
 	public static void doit() throws Exception {
 		CommonTokenStream cts = new CommonTokenStream(new CLexer(
-				new ANTLRFileStream(filename)));
+				new ANTLRFileStream(foldername + "/" + filename)));
 		CParser cp = new CParser(cts);
 		cts.fill();
 
 		ProgramContext context = cp.program();
 
-		// tree.save(cp, filename + ".ps");
+		//context.save(cp, filename + ".ps");
 		Program program = context.ret;
-		Gson gson = new Gson();
-		System.out.println(gson.toJson(program));
+		 Gson gson = new Gson();
+		 System.out.println(gson.toJson(program));
+		Semantic semantic = new Semantic();
+		semantic.checkProgram(program);
+		for (Error error : semantic.getErrors())
+			System.out.println(error);
+		if (semantic.hasError())
+			exit(1);
+		exit(0);
+	}
+
+	private static void exit(int i) {
+		System.out.println("exit with " + i);
+		System.exit(i);
 	}
 
 	private static void fuckit(String inputName) {
@@ -54,11 +69,7 @@ public class Test {
 				break;
 			}
 		}
-		// System.out.println(ans);
-		/*
-		 * Random random = new Random(); if (random.nextInt() % 100 < 3) ans = 1
-		 * - ans;
-		 */
+
 		System.out.println("Don't Panic");
 		System.exit(ans);
 	}

@@ -105,6 +105,14 @@ public class Semantic {
 		errors.add(new Error(message, true));
 	}
 
+	public boolean hasError() {
+		return errors.size() > 0;
+	}
+
+	public List<Error> getErrors() {
+		return errors;
+	}
+
 	public void checkProgram(Program program) {
 		for (Node node : program.node) {
 			if (node instanceof Declaration)
@@ -145,7 +153,7 @@ public class Semantic {
 
 	private TYPE checkInitializer(Initializer initializer, TYPE type) {
 		if (initializer.assExpr != null) {
-			TYPE fromType = checkAssExpr(initializer.assExpr);
+			TYPE fromType = checkAssExpr(initializer.assExpr).first;
 			if (!canCast(fromType, type))
 				error("cannot cast type in initializer");
 			return type;
@@ -188,7 +196,7 @@ public class Semantic {
 		Id id = decl.plainDeclarator.id;
 
 		for (ConstExpr constExpr : decl.constExpr) {
-			TYPE type = checkConstExpr(constExpr);
+			TYPE type = checkConstExpr(constExpr).first;
 			if (type != INT.getInstance() && type != CHAR.getInstance())
 				error("length of array must be integer");
 		}
@@ -239,8 +247,11 @@ public class Semantic {
 				} else
 					error("undifined record");
 			} else {
+				// XXX put the struct into env before finish declaration may
+				// cause problem
 				RECORD record = rType.structUnion == StructUnion.STRUCT ? new STRUCT(
 						rType.id.symbol) : new UNION(rType.id.symbol);
+				env.putType(record, rType.id.symbol);
 				for (Pair<TypeSpecifier, Declarators> pair : rType.pairs) {
 					TYPE type = checkTypeSpecifier(pair.first);
 					List<Pair<TYPE, Symbol>> pairs = checkDeclarators(
@@ -258,9 +269,10 @@ public class Semantic {
 		TYPE declType = checkTypeSpecifier(funcDecl.typeSpecifier);
 		env.beginScope();
 		ArrayList<Pair<TYPE, Symbol>> list = checkParameters(funcDecl.parameters);
+		boolean varparams = funcDecl.parameters == null ? false
+				: funcDecl.parameters.varparams;
 		FUNCTION func = FunctionBuilder.build(declType,
-				funcDecl.plainDeclarator.starCount, list,
-				funcDecl.parameters.varparams, true);
+				funcDecl.plainDeclarator.starCount, list, varparams, true);
 		env.putFunc(func, funcDecl.plainDeclarator.id.symbol);
 		TYPE retnType = checkCompStmt(funcDecl.compStmt);
 		env.endScope();
@@ -270,6 +282,8 @@ public class Semantic {
 	}
 
 	private ArrayList<Pair<TYPE, Symbol>> checkParameters(Parameters parameters) {
+		if (parameters == null)
+			return null;
 		ArrayList<Pair<TYPE, Symbol>> params = new ArrayList<Pair<TYPE, Symbol>>();
 		HashSet<Symbol> sTable = new HashSet<Symbol>();
 
@@ -311,7 +325,7 @@ public class Semantic {
 		if (stmt instanceof ReturnStmt) {
 			ReturnStmt r = (ReturnStmt) stmt;
 			if (r.expr != null)
-				return checkExpr(r.expr);
+				return checkExpr(r.expr).first;
 		}
 		return null;
 	}
@@ -328,7 +342,7 @@ public class Semantic {
 	}
 
 	private void checkWhileStmt(WhileStmt stmt) {
-		TYPE condType = checkExpr(stmt.cond);
+		TYPE condType = checkExpr(stmt.cond).first;
 		if (condType == null || condType == VOID.getInstance())
 			error("wrong type condition of while");
 		checkStmt(stmt.stmt);
@@ -338,7 +352,7 @@ public class Semantic {
 		if (stmt.begin != null)
 			checkExpr(stmt.begin);
 		if (stmt.cond != null) {
-			TYPE condType = checkExpr(stmt.cond);
+			TYPE condType = checkExpr(stmt.cond).first;
 			if (condType == null || condType == VOID.getInstance())
 				error("wrong type condition of while");
 		}
@@ -349,7 +363,7 @@ public class Semantic {
 
 	private TYPE checkSelStmt(SelStmt stmt) {
 		// FIXME no consideration about return
-		TYPE condType = checkExpr(stmt.cond);
+		TYPE condType = checkExpr(stmt.cond).first;
 		if (condType == null || condType == VOID.getInstance())
 			error("not correct type of condition");
 		checkStmt(stmt.thenStmt);
@@ -361,7 +375,7 @@ public class Semantic {
 	private TYPE checkExprStmt(ExprStmt stmt) {
 		if (stmt.expr == null)
 			return null;
-		return checkExpr(stmt.expr);
+		return checkExpr(stmt.expr).first;
 	}
 
 	private TYPE checkCompStmt(CompStmt compStmt) {
@@ -375,52 +389,55 @@ public class Semantic {
 		return retnType;
 	}
 
-	private TYPE checkConstExpr(ConstExpr constExpr) {
+	private Pair<TYPE, Boolean> checkConstExpr(ConstExpr constExpr) {
 		return checkLogOrExpr(constExpr.logOrExpr);
 	}
 
-	private TYPE checkExpr(Expr expr) {
-		TYPE ret = null;
+	private Pair<TYPE, Boolean> checkExpr(Expr expr) {
+		Pair<TYPE, Boolean> ret = null;
 		for (AssExpr e : expr.assExpr)
 			ret = checkAssExpr(e);
 		return ret;
 	}
 
-	private TYPE checkAssExpr(AssExpr assExpr) {
+	private Pair<TYPE, Boolean> checkAssExpr(AssExpr assExpr) {
 		// FIXME may have to check is left value
 		if (assExpr.logOrExpr != null)
 			return checkLogOrExpr(assExpr.logOrExpr);
 		else {
-			TYPE lType = checkUnaryExpr(assExpr.unaryExpr);
-			TYPE rType = checkAssExpr(assExpr.assExpr);
+			Pair<TYPE, Boolean> lType = checkUnaryExpr(assExpr.unaryExpr);
+			Pair<TYPE, Boolean> rType = checkAssExpr(assExpr.assExpr);
 			if (lType == null || rType == null)
 				return null;
 
+			if (!lType.second)
+				error("left part of assignment must be left value");
 			if (assExpr.op == BinOp.ASSIGN) {
-				if (lType instanceof POINTER && rType instanceof POINTER)
-					if (!((POINTER) lType).equals((POINTER) rType)) {
+				if (lType.first instanceof POINTER
+						&& rType.first instanceof POINTER)
+					if (!((POINTER) lType.first).equals((POINTER) rType.first)) {
 						error("A pointer can only be assigned to a pointer");
 						return null;
 					} else {
-						return lType;
+						return new Pair<TYPE, Boolean>(lType.first, false);
 					}
-				if (!(lType.equals(rType) || (!(lType instanceof RECORD || lType instanceof POINTER) && !(rType instanceof RECORD)))) {
-					error("assignment with wrong operands");
+				if (!(lType.first.equals(rType.first) || (!(lType.first instanceof RECORD || lType.first instanceof POINTER) && !(rType.first instanceof RECORD)))) {
+					error("assignment with wrong operands3");
 					return null;
 				}
-				return lType;
+				return new Pair<TYPE, Boolean>(lType.first, false);
 			} else {
-				if ((lType instanceof POINTER || lType instanceof FUNCTION)
-						&& (rType instanceof POINTER || rType instanceof FUNCTION)) {
+				if ((lType.first instanceof POINTER || lType.first instanceof FUNCTION)
+						&& (rType.first instanceof POINTER || rType.first instanceof FUNCTION)) {
 					error("assignment with wrong operands");
 					return null;
 				}
-				if (!(lType instanceof RECORD)
-						&& (rType instanceof INT || rType instanceof CHAR)) {
-					return lType;
+				if (!(lType.first instanceof RECORD)
+						&& (rType.first instanceof INT || rType.first instanceof CHAR)) {
+					return new Pair<TYPE, Boolean>(lType.first, false);
 				}
-				if (lType.equals(rType)) {
-					return lType;
+				if (lType.first.equals(rType.first)) {
+					return new Pair<TYPE, Boolean>(lType.first, false);
 				}
 				error("assignment with wrong operands");
 				return null;
@@ -429,103 +446,122 @@ public class Semantic {
 		}
 	}
 
-	private TYPE checkLogOrExpr(LogOrExpr logOrExpr) {
+	private Pair<TYPE, Boolean> checkLogOrExpr(LogOrExpr logOrExpr) {
+		if (logOrExpr.expr.size() == 1)
+			return checkLogAndExpr(logOrExpr.expr.get(0));
 		for (LogAndExpr e : logOrExpr.expr) {
-			TYPE t = checkLogAndExpr(e);
+			TYPE t = checkLogAndExpr(e).first;
 			if (t == null)
 				return null;
 			if (t instanceof RECORD)
 				error("record in logical or");
 		}
-		return INT.getInstance();
+		return new Pair<TYPE, Boolean>(INT.getInstance(), false);
 	}
 
-	private TYPE checkLogAndExpr(LogAndExpr logAndExpr) {
+	private Pair<TYPE, Boolean> checkLogAndExpr(LogAndExpr logAndExpr) {
+		if (logAndExpr.expr.size() == 1)
+			return checkInOrExpr(logAndExpr.expr.get(0));
 		for (InOrExpr e : logAndExpr.expr) {
-			TYPE t = checkInOrExpr(e);
+			TYPE t = checkInOrExpr(e).first;
 			if (t == null)
 				return null;
 			if (t instanceof RECORD)
 				error("record in logical and");
 		}
-		return INT.getInstance();
+		return new Pair<TYPE, Boolean>(INT.getInstance(), false);
 	}
 
-	private TYPE checkInOrExpr(InOrExpr inOrExpr) {
+	private Pair<TYPE, Boolean> checkInOrExpr(InOrExpr inOrExpr) {
+		if (inOrExpr.expr.size() == 0)
+			return checkExOrExpr(inOrExpr.expr.get(0));
 		for (ExOrExpr e : inOrExpr.expr) {
-			TYPE t = checkExOrExpr(e);
+			TYPE t = checkExOrExpr(e).first;
 			if (t == null)
 				return null;
 			if (t instanceof RECORD || t instanceof POINTER
 					|| t instanceof FUNCTION)
 				error("inclusiveOr operator with unmatching operands");
 		}
-		return INT.getInstance();
+		return new Pair<TYPE, Boolean>(INT.getInstance(), false);
 	}
 
-	private TYPE checkExOrExpr(ExOrExpr exOrExpr) {
+	private Pair<TYPE, Boolean> checkExOrExpr(ExOrExpr exOrExpr) {
+		if (exOrExpr.expr.size() == 1)
+			return checkAndExpr(exOrExpr.expr.get(0));
 		for (AndExpr e : exOrExpr.expr) {
-			TYPE t = checkAndExpr(e);
+			TYPE t = checkAndExpr(e).first;
 			if (t == null)
 				return null;
 			if (t instanceof RECORD || t instanceof POINTER
 					|| t instanceof FUNCTION)
 				error("exclusiveOr operator with unmatching operands");
 		}
-		return INT.getInstance();
+		return new Pair<TYPE, Boolean>(INT.getInstance(), false);
 	}
 
-	private TYPE checkAndExpr(AndExpr andExpr) {
+	private Pair<TYPE, Boolean> checkAndExpr(AndExpr andExpr) {
+		if (andExpr.expr.size() == 1)
+			return checkEquExpr(andExpr.expr.get(0));
 		for (EquExpr e : andExpr.expr) {
-			TYPE t = checkEquExpr(e);
+			TYPE t = checkEquExpr(e).first;
 			if (t == null)
 				return null;
 			if (t instanceof RECORD || t instanceof POINTER
 					|| t instanceof FUNCTION)
 				error("and operator with unmatching operands");
 		}
-		return INT.getInstance();
+		return new Pair<TYPE, Boolean>(INT.getInstance(), false);
 	}
 
-	private TYPE checkEquExpr(EquExpr equExpr) {
+	private Pair<TYPE, Boolean> checkEquExpr(EquExpr equExpr) {
+		if (equExpr.expr.size() == 1)
+			return checkRelExpr(equExpr.expr.get(0));
 		for (RelExpr e : equExpr.expr) {
-			TYPE t = checkRelExpr(e);
+			TYPE t = checkRelExpr(e).first;
 			if (t == null)
 				return null;
 			if (t instanceof RECORD || t instanceof NAME)
 				error("equality operator with unmatching operands");
 		}
-		return INT.getInstance();
+		return new Pair<TYPE, Boolean>(INT.getInstance(), false);
 	}
 
-	private TYPE checkRelExpr(RelExpr relExpr) {
+	private Pair<TYPE, Boolean> checkRelExpr(RelExpr relExpr) {
+		if (relExpr.expr.size() == 1)
+			return checkShiftExpr(relExpr.expr.get(0));
 		for (ShiftExpr e : relExpr.expr) {
-			TYPE t = checkShiftExpr(e);
+			TYPE t = checkShiftExpr(e).first;
 			if (t == null)
 				return null;
 			if (t instanceof RECORD || t instanceof NAME)
 				error("relation operator with unmatching operands");
 		}
-		return INT.getInstance();
+		return new Pair<TYPE, Boolean>(INT.getInstance(), false);
 	}
 
-	private TYPE checkShiftExpr(ShiftExpr shiftExpr) {
+	private Pair<TYPE, Boolean> checkShiftExpr(ShiftExpr shiftExpr) {
+		if (shiftExpr.expr.size() == 1)
+			return checkAddExpr(shiftExpr.expr.get(0));
 		for (AddExpr e : shiftExpr.expr) {
-			TYPE t = checkAddExpr(e);
+			TYPE t = checkAddExpr(e).first;
 			if (t == null)
 				return null;
 			if (!(t instanceof INT) && !(t instanceof CHAR))
 				error("shift operator with unmatching operands");
 		}
-		return INT.getInstance();
+		return new Pair<TYPE, Boolean>(INT.getInstance(), false);
 	}
 
-	private TYPE checkAddExpr(AddExpr addExpr) {
+	private Pair<TYPE, Boolean> checkAddExpr(AddExpr addExpr) {
+		if (addExpr.expr.size() == 1)
+			return checkMulExpr(addExpr.expr.get(0));
+
 		TYPE retnType = null;
 
 		for (int i = 0; i < addExpr.expr.size(); i++) {
 			MulExpr m = addExpr.expr.get(i);
-			TYPE t = checkMulExpr(m);
+			TYPE t = checkMulExpr(m).first;
 			if (retnType == null) {
 				retnType = t;
 				continue;
@@ -546,100 +582,121 @@ public class Semantic {
 			}
 			error("add operator with unmatching operands");
 		}
-		return retnType;
+		return new Pair<TYPE, Boolean>(retnType, false);
 	}
 
-	private TYPE checkMulExpr(MulExpr mulExpr) {
+	private Pair<TYPE, Boolean> checkMulExpr(MulExpr mulExpr) {
+		if (mulExpr.expr.size() == 1)
+			return checkCastExpr(mulExpr.expr.get(0));
 		for (CastExpr e : mulExpr.expr) {
-			TYPE t = checkCastExpr(e);
+			TYPE t = checkCastExpr(e).first;
 			if (t == null)
 				return null;
 			if (!(t instanceof INT) && !(t instanceof CHAR))
 				error("mul operator with unmatching operands");
 		}
-		return INT.getInstance();
+		return new Pair<TYPE, Boolean>(INT.getInstance(), false);
 	}
 
-	private TYPE checkCastExpr(CastExpr castExpr) {
+	private Pair<TYPE, Boolean> checkCastExpr(CastExpr castExpr) {
 		if (castExpr.expression instanceof UnaryExpr)
 			return checkUnaryExpr((UnaryExpr) castExpr.expression);
-		return checkTypeName(castExpr.typeName);
+
+		Pair<TYPE, Boolean> pair = checkCastExpr((CastExpr) castExpr.expression);
+		return new Pair<TYPE, Boolean>(checkTypeName(castExpr.typeName),
+				pair.second);
 	}
 
-	private TYPE checkUnaryExpr(UnaryOp op, TYPE t) {
+	private Pair<TYPE, Boolean> checkUnaryExpr(UnaryOp op, Pair<TYPE, Boolean> t) {
 		if (t == null)
 			return null;
-		if (op == UnaryOp.AND)
-			return new POINTER(t);
+
+		if (op == UnaryOp.AND) {
+			if (!t.second)
+				error("the unary and need a left value");
+			return new Pair<TYPE, Boolean>(new POINTER(t.first), false);
+		}
+
 		if (op == UnaryOp.STAR) {
-			if (!(t instanceof POINTER))
-				error("a pointer needed in unary expression");
-			else {
-				if (((POINTER) t).elementType instanceof VOID)
+			if (t.first instanceof POINTER) {
+				if (((POINTER) t.first).elementType instanceof VOID)
 					error("get value form a void pointer");
 				else
-					return ((POINTER) t).elementType;
-			}
+					return new Pair<TYPE, Boolean>(
+							((POINTER) t.first).elementType, true);
+			} else
+				error("a pointer needed in unary expression");
 		}
 
 		if (op == UnaryOp.AND || op == UnaryOp.MINUS || op == UnaryOp.TILDE) {
-			if (!(t instanceof INT) && !(t instanceof CHAR))
+			if (!(t.first instanceof INT) && !(t.first instanceof CHAR))
 				error("unary plus or minus or tilde before neither a int nor char");
 			else
-				return t;
+				return new Pair<TYPE, Boolean>(t.first, false);
 		}
 
 		if (op == UnaryOp.NOT) {
-			if (t instanceof FUNCTION)
+			if (t.first instanceof FUNCTION)
 				error("unary not before a function type");
 			else
-				return INT.getInstance();
+				return new Pair<TYPE, Boolean>(INT.getInstance(), false);
 		}
 		return null;
 
 	}
 
-	private TYPE checkUnaryExpr(UnaryExpr unaryExpr) {
+	private Pair<TYPE, Boolean> checkUnaryExpr(UnaryExpr unaryExpr) {
 		if (unaryExpr.exprType == UnaryExpr.POSTEXP)
 			return checkPostExpr((PostExpr) unaryExpr.expr);
+
 		if (unaryExpr.exprType == UnaryExpr.PREDEC
-				|| unaryExpr.exprType == UnaryExpr.PREINC)
-			return checkUnaryExpr((UnaryExpr) unaryExpr.expr);
+				|| unaryExpr.exprType == UnaryExpr.PREINC) {
+			Pair<TYPE, Boolean> pair = checkUnaryExpr((UnaryExpr) unaryExpr.expr);
+			if (!pair.second)
+				error("prefix inc/dec need a left value");
+			return new Pair<TYPE, Boolean>(pair.first, true);
+		}
+
 		if (unaryExpr.exprType == UnaryExpr.UNARYOP) {
 			CastExpr c = (CastExpr) unaryExpr.expr;
-			TYPE t = checkCastExpr(c);
+			Pair<TYPE, Boolean> t = checkCastExpr(c);
 			return checkUnaryExpr(unaryExpr.op, t);
 		}
+
 		if (unaryExpr.exprType == UnaryExpr.SIZETYNAME
 				|| unaryExpr.exprType == UnaryExpr.SIZEUEXP)
-			return INT.getInstance();
+			return new Pair<TYPE, Boolean>(INT.getInstance(), false);
 		return null;
 	}
 
-	private TYPE checkPostExpr(PostExpr expr) {
-		TYPE t = checkPriExpr(expr.priExpr);
+	private Pair<TYPE, Boolean> checkPostExpr(PostExpr expr) {
+		Pair<TYPE, Boolean> t = checkPriExpr(expr.priExpr);
 		return checkPostfixs(t, expr.postfix);
 	}
 
-	private TYPE checkPostfixs(TYPE t, List<Postfix> list) {
+	private Pair<TYPE, Boolean> checkPostfixs(Pair<TYPE, Boolean> t,
+			List<Postfix> list) {
 		for (Postfix p : list) {
 			if (p instanceof ArrPostfix)
-				t = checkArrPostfix(t, (ArrPostfix) p);
+				t = checkArrPostfix(t.first, (ArrPostfix) p);
 			if (p instanceof FunPostfix)
-				t = checkFunPostfix(t, (FunPostfix) p);
+				t = checkFunPostfix(t.first, (FunPostfix) p);
 			if (p instanceof ValAttrPostfix)
-				t = checkValAttrPostfix(t, (ValAttrPostfix) p);
+				t = checkValAttrPostfix(t.first, (ValAttrPostfix) p);
 			if (p instanceof PtrAttrPostfix)
-				t = checkPtrAttrPostfix(t, (PtrAttrPostfix) p);
+				t = checkPtrAttrPostfix(t.first, (PtrAttrPostfix) p);
 			if (p instanceof SelfIncPostfix || p instanceof SelfDecPostfix) {
-				if (t instanceof FUNCTION || t instanceof RECORD)
+				if (t.first instanceof FUNCTION || t.first instanceof RECORD)
 					error("self inc or dec with wrong type");
+				if (!t.second)
+					error("self inc/dec postfix need a left value");
+				t.second = true;
 			}
 		}
 		return t;
 	}
 
-	private TYPE checkPtrAttrPostfix(TYPE t, PtrAttrPostfix p) {
+	private Pair<TYPE, Boolean> checkPtrAttrPostfix(TYPE t, PtrAttrPostfix p) {
 		if (t == null || p.identifier == null)
 			return null;
 		if (t instanceof POINTER) {
@@ -648,7 +705,7 @@ public class Semantic {
 				RECORD r = (RECORD) t;
 				for (RECORD.RecordField field : r.fields)
 					if (field.name.equals(p.identifier.symbol))
-						return field.type;
+						return new Pair<TYPE, Boolean>(field.type, true);
 				error("field missing");
 			} else
 				error("-> need pointer to a record");
@@ -658,7 +715,7 @@ public class Semantic {
 		return null;
 	}
 
-	private TYPE checkValAttrPostfix(TYPE t, ValAttrPostfix p) {
+	private Pair<TYPE, Boolean> checkValAttrPostfix(TYPE t, ValAttrPostfix p) {
 		if (t == null || p.identifier == null)
 			return null;
 
@@ -666,7 +723,7 @@ public class Semantic {
 			RECORD r = (RECORD) t;
 			for (RECORD.RecordField field : r.fields)
 				if (field.name.equals(p.identifier.symbol))
-					return field.type;
+					return new Pair<TYPE, Boolean>(field.type, true);
 			error("field missing");
 		} else
 			error(". need  a record");
@@ -674,14 +731,15 @@ public class Semantic {
 		return null;
 	}
 
-	private TYPE checkFunPostfix(TYPE t, FunPostfix p) {
+	private Pair<TYPE, Boolean> checkFunPostfix(TYPE t, FunPostfix p) {
 		if (t == null)
 			return null;
 		if (!(t instanceof FUNCTION))
 			error("function postfix need a function");
 		else {
 			if (isParaMatch((FUNCTION) t, p.arguments.assExpr))
-				return ((FUNCTION) t).getFinalReturnType();
+				return new Pair<TYPE, Boolean>(
+						((FUNCTION) t).getFinalReturnType(), false);
 			else
 				error("params unmatch");
 		}
@@ -693,40 +751,43 @@ public class Semantic {
 		return true;
 	}
 
-	private TYPE checkArrPostfix(TYPE t, ArrPostfix p) {
+	private Pair<TYPE, Boolean> checkArrPostfix(TYPE t, ArrPostfix p) {
 		if (t == null)
 			return null;
 		if (!(t instanceof ARRAY))
 			error("ArrPostfix need an array");
 		else {
-			TYPE type = checkExpr((Expr) p.expression);
-			if (!(type instanceof INT) && !(type instanceof CHAR))
+			Pair<TYPE, Boolean> type = checkExpr((Expr) p.expression);
+			if (!(type.first instanceof INT) && !(type.first instanceof CHAR))
 				error("wrong type of array index");
-			return ((ARRAY) t).elementType;
+			return new Pair<TYPE, Boolean>(((ARRAY) t).elementType, true);
 		}
 		return null;
 	}
 
-	private TYPE checkPriExpr(PriExpr priExpr) {
+	private Pair<TYPE, Boolean> checkPriExpr(PriExpr priExpr) {
 		Expression e = priExpr.exp;
 		if (e instanceof Id) {
 			TYPE t = env.getByIdenName(((Id) e).symbol);
 			if (t == null)
 				error("undefined identifier");
-			return t;
+			if (t instanceof FUNCTION || t instanceof ARRAY)
+				return new Pair<TYPE, Boolean>(t, false);
+			return new Pair<TYPE, Boolean>(t, true);
 		}
 		if (e instanceof Constant) {
 			if (e instanceof IntConst)
-				return INT.getInstance();
+				return new Pair<TYPE, Boolean>(INT.getInstance(), false);
 			if (e instanceof CharConst)
-				return CHAR.getInstance();
+				return new Pair<TYPE, Boolean>(CHAR.getInstance(), false);
 		}
 		if (e instanceof StringExpr) {
-			return new ARRAY(CHAR.getInstance(),
-					((StringExpr) e).value.length());
+			return new Pair<TYPE, Boolean>(new ARRAY(CHAR.getInstance(),
+					((StringExpr) e).value.length()), false);
 		}
-		if (e instanceof Expr)
+		if (e instanceof Expr) {
 			return checkExpr((Expr) e);
+		}
 		return null;
 	}
 
