@@ -1,6 +1,10 @@
 // Generated from C.g4 by ANTLR 4.0
 
-package parser;
+  package compiler.parser;
+  import compiler.absyn.*;
+  import compiler.symbol.*;
+  import compiler.util.Pair;
+  import static compiler.symbol.Symbol.symbol;
 
 
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -96,6 +100,9 @@ public class CBaseListener implements CListener {
 	@Override public void enterInclusive_or_expression(CParser.Inclusive_or_expressionContext ctx) { }
 	@Override public void exitInclusive_or_expression(CParser.Inclusive_or_expressionContext ctx) { }
 
+	@Override public void enterStringExpr(CParser.StringExprContext ctx) { }
+	@Override public void exitStringExpr(CParser.StringExprContext ctx) { }
+
 	@Override public void enterConstant_expression(CParser.Constant_expressionContext ctx) { }
 	@Override public void exitConstant_expression(CParser.Constant_expressionContext ctx) { }
 
@@ -155,9 +162,6 @@ public class CBaseListener implements CListener {
 
 	@Override public void enterPrimary_expression(CParser.Primary_expressionContext ctx) { }
 	@Override public void exitPrimary_expression(CParser.Primary_expressionContext ctx) { }
-
-	@Override public void enterString(CParser.StringContext ctx) { }
-	@Override public void exitString(CParser.StringContext ctx) { }
 
 	@Override public void enterType_specifier(CParser.Type_specifierContext ctx) { }
 	@Override public void exitType_specifier(CParser.Type_specifierContext ctx) { }
