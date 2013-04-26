@@ -29,8 +29,8 @@ public class CParser extends Parser {
 		T__20=38, T__19=39, T__18=40, T__17=41, T__16=42, T__15=43, T__14=44, 
 		T__13=45, T__12=46, T__11=47, T__10=48, T__9=49, T__8=50, T__7=51, T__6=52, 
 		T__5=53, T__4=54, T__3=55, T__2=56, T__1=57, T__0=58, Whitespace=59, Multi_comment=60, 
-		Single_comment=61, Hex=62, Dec=63, Oct=64, CharacterLiteral=65, StringLiteral=66, 
-		Identifier=67;
+		Single_comment=61, Preprocessing=62, Hex=63, Dec=64, Oct=65, CharacterLiteral=66, 
+		StringLiteral=67, Identifier=68;
 	public static final String[] tokenNames = {
 		"<INVALID>", "'&'", "'['", "'*'", "'<'", "'--'", "'continue'", "'!='", 
 		"'<='", "'<<'", "'}'", "'char'", "'%'", "'->'", "'*='", "'union'", "')'", 
@@ -39,8 +39,8 @@ public class CParser extends Parser {
 		"'...'", "'break'", "'+='", "'^='", "'else'", "'struct'", "'++'", "'>>'", 
 		"'^'", "'.'", "'+'", "'for'", "'typedef'", "'return'", "';'", "'&&'", 
 		"'||'", "'>'", "'%='", "'/='", "'=='", "'/'", "'~'", "'>='", "Whitespace", 
-		"Multi_comment", "Single_comment", "Hex", "Dec", "Oct", "CharacterLiteral", 
-		"StringLiteral", "Identifier"
+		"Multi_comment", "Single_comment", "Preprocessing", "Hex", "Dec", "Oct", 
+		"CharacterLiteral", "StringLiteral", "Identifier"
 	};
 	public static final int
 		RULE_program = 0, RULE_declaration = 1, RULE_function_definition = 2, 
@@ -1210,7 +1210,7 @@ public class CParser extends Parser {
 			Expr expr = null;
 			setState(323);
 			_la = _input.LA(1);
-			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << 1) | (1L << 3) | (1L << 5) | (1L << 20) | (1L << 21) | (1L << 27) | (1L << 28) | (1L << 41) | (1L << 45) | (1L << 57) | (1L << Hex) | (1L << Dec))) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & ((1L << (Oct - 64)) | (1L << (CharacterLiteral - 64)) | (1L << (StringLiteral - 64)) | (1L << (Identifier - 64)))) != 0)) {
+			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << 1) | (1L << 3) | (1L << 5) | (1L << 20) | (1L << 21) | (1L << 27) | (1L << 28) | (1L << 41) | (1L << 45) | (1L << 57) | (1L << Hex))) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & ((1L << (Dec - 64)) | (1L << (Oct - 64)) | (1L << (CharacterLiteral - 64)) | (1L << (StringLiteral - 64)) | (1L << (Identifier - 64)))) != 0)) {
 				{
 				setState(320); ((Expression_statementContext)_localctx).e = expression();
 				expr = ((Expression_statementContext)_localctx).e.ret;
@@ -1292,7 +1292,7 @@ public class CParser extends Parser {
 			setState(342);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			while ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << 1) | (1L << 3) | (1L << 5) | (1L << 6) | (1L << 20) | (1L << 21) | (1L << 26) | (1L << 27) | (1L << 28) | (1L << 30) | (1L << 34) | (1L << 36) | (1L << 41) | (1L << 45) | (1L << 46) | (1L << 48) | (1L << 49) | (1L << 57) | (1L << Hex) | (1L << Dec))) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & ((1L << (Oct - 64)) | (1L << (CharacterLiteral - 64)) | (1L << (StringLiteral - 64)) | (1L << (Identifier - 64)))) != 0)) {
+			while ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << 1) | (1L << 3) | (1L << 5) | (1L << 6) | (1L << 20) | (1L << 21) | (1L << 26) | (1L << 27) | (1L << 28) | (1L << 30) | (1L << 34) | (1L << 36) | (1L << 41) | (1L << 45) | (1L << 46) | (1L << 48) | (1L << 49) | (1L << 57) | (1L << Hex))) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & ((1L << (Dec - 64)) | (1L << (Oct - 64)) | (1L << (CharacterLiteral - 64)) | (1L << (StringLiteral - 64)) | (1L << (Identifier - 64)))) != 0)) {
 				{
 				{
 				setState(337); ((Compound_statementContext)_localctx).s = statement();
@@ -1439,7 +1439,7 @@ public class CParser extends Parser {
 				setState(370); match(28);
 				setState(374);
 				_la = _input.LA(1);
-				if ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << 1) | (1L << 3) | (1L << 5) | (1L << 20) | (1L << 21) | (1L << 27) | (1L << 28) | (1L << 41) | (1L << 45) | (1L << 57) | (1L << Hex) | (1L << Dec))) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & ((1L << (Oct - 64)) | (1L << (CharacterLiteral - 64)) | (1L << (StringLiteral - 64)) | (1L << (Identifier - 64)))) != 0)) {
+				if ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << 1) | (1L << 3) | (1L << 5) | (1L << 20) | (1L << 21) | (1L << 27) | (1L << 28) | (1L << 41) | (1L << 45) | (1L << 57) | (1L << Hex))) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & ((1L << (Dec - 64)) | (1L << (Oct - 64)) | (1L << (CharacterLiteral - 64)) | (1L << (StringLiteral - 64)) | (1L << (Identifier - 64)))) != 0)) {
 					{
 					setState(371); ((Iteration_statementContext)_localctx).e1 = expression();
 					expr1 = ((Iteration_statementContext)_localctx).e1.ret;
@@ -1449,7 +1449,7 @@ public class CParser extends Parser {
 				setState(376); match(49);
 				setState(380);
 				_la = _input.LA(1);
-				if ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << 1) | (1L << 3) | (1L << 5) | (1L << 20) | (1L << 21) | (1L << 27) | (1L << 28) | (1L << 41) | (1L << 45) | (1L << 57) | (1L << Hex) | (1L << Dec))) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & ((1L << (Oct - 64)) | (1L << (CharacterLiteral - 64)) | (1L << (StringLiteral - 64)) | (1L << (Identifier - 64)))) != 0)) {
+				if ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << 1) | (1L << 3) | (1L << 5) | (1L << 20) | (1L << 21) | (1L << 27) | (1L << 28) | (1L << 41) | (1L << 45) | (1L << 57) | (1L << Hex))) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & ((1L << (Dec - 64)) | (1L << (Oct - 64)) | (1L << (CharacterLiteral - 64)) | (1L << (StringLiteral - 64)) | (1L << (Identifier - 64)))) != 0)) {
 					{
 					setState(377); ((Iteration_statementContext)_localctx).e2 = expression();
 					expr2 = ((Iteration_statementContext)_localctx).e2.ret;
@@ -1459,7 +1459,7 @@ public class CParser extends Parser {
 				setState(382); match(49);
 				setState(386);
 				_la = _input.LA(1);
-				if ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << 1) | (1L << 3) | (1L << 5) | (1L << 20) | (1L << 21) | (1L << 27) | (1L << 28) | (1L << 41) | (1L << 45) | (1L << 57) | (1L << Hex) | (1L << Dec))) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & ((1L << (Oct - 64)) | (1L << (CharacterLiteral - 64)) | (1L << (StringLiteral - 64)) | (1L << (Identifier - 64)))) != 0)) {
+				if ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << 1) | (1L << 3) | (1L << 5) | (1L << 20) | (1L << 21) | (1L << 27) | (1L << 28) | (1L << 41) | (1L << 45) | (1L << 57) | (1L << Hex))) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & ((1L << (Dec - 64)) | (1L << (Oct - 64)) | (1L << (CharacterLiteral - 64)) | (1L << (StringLiteral - 64)) | (1L << (Identifier - 64)))) != 0)) {
 					{
 					setState(383); ((Iteration_statementContext)_localctx).e3 = expression();
 					expr3 = ((Iteration_statementContext)_localctx).e3.ret;
@@ -1536,7 +1536,7 @@ public class CParser extends Parser {
 				setState(401); match(48);
 				setState(405);
 				_la = _input.LA(1);
-				if ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << 1) | (1L << 3) | (1L << 5) | (1L << 20) | (1L << 21) | (1L << 27) | (1L << 28) | (1L << 41) | (1L << 45) | (1L << 57) | (1L << Hex) | (1L << Dec))) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & ((1L << (Oct - 64)) | (1L << (CharacterLiteral - 64)) | (1L << (StringLiteral - 64)) | (1L << (Identifier - 64)))) != 0)) {
+				if ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << 1) | (1L << 3) | (1L << 5) | (1L << 20) | (1L << 21) | (1L << 27) | (1L << 28) | (1L << 41) | (1L << 45) | (1L << 57) | (1L << Hex))) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & ((1L << (Dec - 64)) | (1L << (Oct - 64)) | (1L << (CharacterLiteral - 64)) | (1L << (StringLiteral - 64)) | (1L << (Identifier - 64)))) != 0)) {
 					{
 					setState(402); ((Jump_statementContext)_localctx).expression = expression();
 					expr = ((Jump_statementContext)_localctx).expression.ret;
@@ -3219,7 +3219,7 @@ public class CParser extends Parser {
 				setState(689); match(28);
 				setState(693);
 				_la = _input.LA(1);
-				if ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << 1) | (1L << 3) | (1L << 5) | (1L << 20) | (1L << 21) | (1L << 27) | (1L << 28) | (1L << 41) | (1L << 45) | (1L << 57) | (1L << Hex) | (1L << Dec))) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & ((1L << (Oct - 64)) | (1L << (CharacterLiteral - 64)) | (1L << (StringLiteral - 64)) | (1L << (Identifier - 64)))) != 0)) {
+				if ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << 1) | (1L << 3) | (1L << 5) | (1L << 20) | (1L << 21) | (1L << 27) | (1L << 28) | (1L << 41) | (1L << 45) | (1L << 57) | (1L << Hex))) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & ((1L << (Dec - 64)) | (1L << (Oct - 64)) | (1L << (CharacterLiteral - 64)) | (1L << (StringLiteral - 64)) | (1L << (Identifier - 64)))) != 0)) {
 					{
 					setState(690); ((PostfixContext)_localctx).arguments = arguments();
 					argu = ((PostfixContext)_localctx).arguments.ret;
@@ -3706,7 +3706,7 @@ public class CParser extends Parser {
 	}
 
 	public static final String _serializedATN =
-		"\2\3E\u0301\4\2\t\2\4\3\t\3\4\4\t\4\4\5\t\5\4\6\t\6\4\7\t\7\4\b\t\b\4"+
+		"\2\3F\u0301\4\2\t\2\4\3\t\3\4\4\t\4\4\5\t\5\4\6\t\6\4\7\t\7\4\b\t\b\4"+
 		"\t\t\t\4\n\t\n\4\13\t\13\4\f\t\f\4\r\t\r\4\16\t\16\4\17\t\17\4\20\t\20"+
 		"\4\21\t\21\4\22\t\22\4\23\t\23\4\24\t\24\4\25\t\25\4\26\t\26\4\27\t\27"+
 		"\4\30\t\30\4\31\t\31\4\32\t\32\4\33\t\33\4\34\t\34\4\35\t\35\4\36\t\36"+
@@ -3974,12 +3974,12 @@ public class CParser extends Parser {
 		"\2\2\u02e2\u02dd\3\2\2\2\u02e3]\3\2\2\2\u02e4\u02e5\5d\63\2\u02e5\u02e6"+
 		"\b\60\1\2\u02e6\u02eb\3\2\2\2\u02e7\u02e8\5f\64\2\u02e8\u02e9\b\60\1\2"+
 		"\u02e9\u02eb\3\2\2\2\u02ea\u02e4\3\2\2\2\u02ea\u02e7\3\2\2\2\u02eb_\3"+
-		"\2\2\2\u02ec\u02ed\7E\2\2\u02ed\u02ee\b\61\1\2\u02eea\3\2\2\2\u02ef\u02f0"+
-		"\7E\2\2\u02f0\u02f1\b\62\1\2\u02f1c\3\2\2\2\u02f2\u02f3\7@\2\2\u02f3\u02f9"+
-		"\b\63\1\2\u02f4\u02f5\7A\2\2\u02f5\u02f9\b\63\1\2\u02f6\u02f7\7B\2\2\u02f7"+
+		"\2\2\2\u02ec\u02ed\7F\2\2\u02ed\u02ee\b\61\1\2\u02eea\3\2\2\2\u02ef\u02f0"+
+		"\7F\2\2\u02f0\u02f1\b\62\1\2\u02f1c\3\2\2\2\u02f2\u02f3\7A\2\2\u02f3\u02f9"+
+		"\b\63\1\2\u02f4\u02f5\7B\2\2\u02f5\u02f9\b\63\1\2\u02f6\u02f7\7C\2\2\u02f7"+
 		"\u02f9\b\63\1\2\u02f8\u02f2\3\2\2\2\u02f8\u02f4\3\2\2\2\u02f8\u02f6\3"+
-		"\2\2\2\u02f9e\3\2\2\2\u02fa\u02fb\7C\2\2\u02fb\u02fc\b\64\1\2\u02fcg\3"+
-		"\2\2\2\u02fd\u02fe\7D\2\2\u02fe\u02ff\b\65\1\2\u02ffi\3\2\2\2>pr\177\u0084"+
+		"\2\2\2\u02f9e\3\2\2\2\u02fa\u02fb\7D\2\2\u02fb\u02fc\b\64\1\2\u02fcg\3"+
+		"\2\2\2\u02fd\u02fe\7E\2\2\u02fe\u02ff\b\65\1\2\u02ffi\3\2\2\2>pr\177\u0084"+
 		"\u008d\u009b\u00a1\u00ac\u00ba\u00c5\u00d6\u00dc\u00ec\u00f6\u00ff\u0105"+
 		"\u0111\u011f\u0124\u012a\u013f\u0145\u0150\u0158\u0167\u0178\u017e\u0184"+
 		"\u018a\u0197\u019b\u01a5\u01b0\u01c8\u01d5\u01e0\u01eb\u01f6\u0201\u020d"+

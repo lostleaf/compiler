@@ -68,9 +68,9 @@ import compiler.absyn.UnaryOp;
 import compiler.absyn.ValAttrPostfix;
 import compiler.absyn.VoidType;
 import compiler.absyn.WhileStmt;
-import compiler.builder.ArrayBuilder;
-import compiler.builder.FunctionBuilder;
 import compiler.env.Env;
+import compiler.semantic.builder.ArrayBuilder;
+import compiler.semantic.builder.FunctionBuilder;
 import compiler.symbol.Symbol;
 import compiler.type.ARRAY;
 import compiler.type.CHAR;
@@ -134,15 +134,14 @@ public class Semantic {
 	}
 
 	private void checkInitDeclarators(InitDeclarators initDeclarators, TYPE type) {
-		for (InitDeclarator initd : initDeclarators.initDecl) {
-			Pair<TYPE, Symbol> pair = checkInitDeclarator(initd, type);
-			env.putIden(pair.first, pair.second);
-		}
+		for (InitDeclarator initd : initDeclarators.initDecl)
+			checkInitDeclarator(initd, type);
 	}
 
 	private Pair<TYPE, Symbol> checkInitDeclarator(InitDeclarator initd,
 			TYPE type) {
 		Pair<TYPE, Symbol> pair = checkDeclarator(initd.declarator, type);
+		env.putIden(pair.first, pair.second);
 		if (initd.initializer != null) {
 			TYPE fromType = checkInitializer(initd.initializer, pair.first);
 			if (!canCast(fromType, pair.first))
@@ -153,7 +152,8 @@ public class Semantic {
 
 	private TYPE checkInitializer(Initializer initializer, TYPE type) {
 		if (initializer.assExpr != null) {
-			TYPE fromType = checkAssExpr(initializer.assExpr).first;
+			Pair<TYPE, Boolean> from = checkAssExpr(initializer.assExpr);
+			TYPE fromType = from == null ? null : from.first;
 			if (!canCast(fromType, type))
 				error("cannot cast type in initializer");
 			return type;
@@ -166,7 +166,7 @@ public class Semantic {
 				if (ty == null)
 					ty = tty.getClass();
 				if (!(ty.isInstance(ty)))
-					error("initializer should be same type");
+					error("initializers should be same type");
 			}
 			return tty;
 		}
@@ -249,15 +249,19 @@ public class Semantic {
 			} else {
 				// XXX put the struct into env before finish declaration may
 				// cause problem
+				Symbol symbol = rType.id == null ? null : rType.id.symbol;
 				RECORD record = rType.structUnion == StructUnion.STRUCT ? new STRUCT(
-						rType.id.symbol) : new UNION(rType.id.symbol);
-				env.putType(record, rType.id.symbol);
+						symbol) : new UNION(symbol);
+				env.putType(record, symbol);
 				for (Pair<TypeSpecifier, Declarators> pair : rType.pairs) {
 					TYPE type = checkTypeSpecifier(pair.first);
 					List<Pair<TYPE, Symbol>> pairs = checkDeclarators(
 							pair.second, type);
-					for (Pair<TYPE, Symbol> p : pairs)
+					for (Pair<TYPE, Symbol> p : pairs) {
+						if (record.hasField(p.second))
+							error("duplicate field");
 						record.addField(p.first, p.second);
+					}
 				}
 				return record;
 			}
@@ -267,18 +271,20 @@ public class Semantic {
 
 	private void checkFunctionDefinition(FunctionDefinition funcDecl) {
 		TYPE declType = checkTypeSpecifier(funcDecl.typeSpecifier);
-		env.beginScope();
 		ArrayList<Pair<TYPE, Symbol>> list = checkParameters(funcDecl.parameters);
 		boolean varparams = funcDecl.parameters == null ? false
 				: funcDecl.parameters.varparams;
+
 		FUNCTION func = FunctionBuilder.build(declType,
 				funcDecl.plainDeclarator.starCount, list, varparams, true);
 		env.putFunc(func, funcDecl.plainDeclarator.id.symbol);
-		TYPE retnType = checkCompStmt(funcDecl.compStmt);
-		env.endScope();
 
-		if (!canCast(declType, retnType))
-			error("declared type cannot cast from returned type");
+		env.beginScope();
+		if (list != null)
+			for (Pair<TYPE, Symbol> pair : list)
+				env.putIden(pair.first, pair.second);
+		checkCompStmt(funcDecl.compStmt, declType);
+		env.endScope();
 	}
 
 	private ArrayList<Pair<TYPE, Symbol>> checkParameters(Parameters parameters) {
@@ -303,52 +309,50 @@ public class Semantic {
 		return checkDeclarator(p.declarator, type);
 	}
 
-	private TYPE checkStmt(Stmt stmt) {
+	private void checkStmt(Stmt stmt, TYPE type) {
 		if (stmt instanceof ExprStmt)
-			return checkExprStmt((ExprStmt) stmt);
+			checkExprStmt((ExprStmt) stmt);
 		if (stmt instanceof CompStmt)
-			return checkCompStmt((CompStmt) stmt);
+			checkCompStmt((CompStmt) stmt, type);
 		if (stmt instanceof SelStmt)
-			return checkSelStmt((SelStmt) stmt);
+			checkSelStmt((SelStmt) stmt, type);
 		if (stmt instanceof IterStmt)
-			return checkIterStmt((IterStmt) stmt);
+			checkIterStmt((IterStmt) stmt, type);
 		if (stmt instanceof JumpStmt)
-			return checkJumpStmt((JumpStmt) stmt);
-		return null;
+			checkJumpStmt((JumpStmt) stmt, type);
 	}
 
-	private TYPE checkJumpStmt(JumpStmt stmt) {
+	private void checkJumpStmt(JumpStmt stmt, TYPE type) {
 		if (stmt instanceof ContinueStmt && loopCount == 0)
 			error("continue out of loop");
 		if (stmt instanceof BreakStmt && loopCount == 0)
 			error("break out of loop");
 		if (stmt instanceof ReturnStmt) {
 			ReturnStmt r = (ReturnStmt) stmt;
-			if (r.expr != null)
-				return checkExpr(r.expr).first;
+			Pair<TYPE, Boolean> pair = checkExpr(r.expr);
+			if (pair != null && !canCast(pair.first, type))
+				error("cannot cast return type to function type");
 		}
-		return null;
 	}
 
-	private TYPE checkIterStmt(IterStmt stmt) {
-		// FIXME no consideration about return
+	private void checkIterStmt(IterStmt stmt, TYPE type) {
 		loopCount++;
 		if (stmt instanceof ForStmt)
-			checkForStmt((ForStmt) stmt);
+			checkForStmt((ForStmt) stmt, type);
 		if (stmt instanceof WhileStmt)
-			checkWhileStmt((WhileStmt) stmt);
+			checkWhileStmt((WhileStmt) stmt, type);
 		loopCount--;
-		return null;
 	}
 
-	private void checkWhileStmt(WhileStmt stmt) {
+	private void checkWhileStmt(WhileStmt stmt, TYPE type) {
 		TYPE condType = checkExpr(stmt.cond).first;
-		if (condType == null || condType == VOID.getInstance())
+		if (condType != INT.getInstance() && condType != CHAR.getInstance()
+				&& !(condType instanceof POINTER))
 			error("wrong type condition of while");
-		checkStmt(stmt.stmt);
+		checkStmt(stmt.stmt, type);
 	}
 
-	private void checkForStmt(ForStmt stmt) {
+	private void checkForStmt(ForStmt stmt, TYPE type) {
 		if (stmt.begin != null)
 			checkExpr(stmt.begin);
 		if (stmt.cond != null) {
@@ -358,35 +362,33 @@ public class Semantic {
 		}
 		if (stmt.end != null)
 			checkExpr(stmt.end);
-		checkStmt(stmt.stmt);
+		checkStmt(stmt.stmt, type);
 	}
 
-	private TYPE checkSelStmt(SelStmt stmt) {
-		// FIXME no consideration about return
+	private void checkSelStmt(SelStmt stmt, TYPE type) {
 		TYPE condType = checkExpr(stmt.cond).first;
-		if (condType == null || condType == VOID.getInstance())
+		if (condType != INT.getInstance() && condType != CHAR.getInstance()
+				&& !(condType instanceof POINTER))
 			error("not correct type of condition");
-		checkStmt(stmt.thenStmt);
+
+		checkStmt(stmt.thenStmt, type);
 		if (stmt.elseStmt != null)
-			checkStmt(stmt.elseStmt);
-		return null;
+			checkStmt(stmt.elseStmt, type);
 	}
 
-	private TYPE checkExprStmt(ExprStmt stmt) {
+	private void checkExprStmt(ExprStmt stmt) {
 		if (stmt.expr == null)
-			return null;
-		return checkExpr(stmt.expr).first;
+			return;
+		checkExpr(stmt.expr);
 	}
 
-	private TYPE checkCompStmt(CompStmt compStmt) {
+	private void checkCompStmt(CompStmt compStmt, TYPE type) {
 		env.beginScope();
 		for (Declaration d : compStmt.declaration)
 			checkDeclaration(d);
-		TYPE retnType = null;
 		for (Stmt stmt : compStmt.stmt)
-			retnType = checkStmt(stmt);
+			checkStmt(stmt, type);
 		env.endScope();
-		return retnType;
 	}
 
 	private Pair<TYPE, Boolean> checkConstExpr(ConstExpr constExpr) {
@@ -401,7 +403,6 @@ public class Semantic {
 	}
 
 	private Pair<TYPE, Boolean> checkAssExpr(AssExpr assExpr) {
-		// FIXME may have to check is left value
 		if (assExpr.logOrExpr != null)
 			return checkLogOrExpr(assExpr.logOrExpr);
 		else {
@@ -413,14 +414,14 @@ public class Semantic {
 			if (!lType.second)
 				error("left part of assignment must be left value");
 			if (assExpr.op == BinOp.ASSIGN) {
+
+				// pointer of any type can assign to another
 				if (lType.first instanceof POINTER
-						&& rType.first instanceof POINTER)
-					if (!((POINTER) lType.first).equals((POINTER) rType.first)) {
-						error("A pointer can only be assigned to a pointer");
-						return null;
-					} else {
-						return new Pair<TYPE, Boolean>(lType.first, false);
-					}
+						&& (rType.first instanceof POINTER
+								|| rType.first == INT.getInstance() || rType.first == CHAR
+								.getInstance()))
+					return new Pair<TYPE, Boolean>(lType.first, false);
+
 				if (!(lType.first.equals(rType.first) || (!(lType.first instanceof RECORD || lType.first instanceof POINTER) && !(rType.first instanceof RECORD)))) {
 					error("assignment with wrong operands3");
 					return null;
@@ -450,10 +451,10 @@ public class Semantic {
 		if (logOrExpr.expr.size() == 1)
 			return checkLogAndExpr(logOrExpr.expr.get(0));
 		for (LogAndExpr e : logOrExpr.expr) {
-			TYPE t = checkLogAndExpr(e).first;
+			Pair<TYPE, Boolean> t = checkLogAndExpr(e);
 			if (t == null)
 				return null;
-			if (t instanceof RECORD)
+			if (t.first instanceof RECORD)
 				error("record in logical or");
 		}
 		return new Pair<TYPE, Boolean>(INT.getInstance(), false);
@@ -473,14 +474,14 @@ public class Semantic {
 	}
 
 	private Pair<TYPE, Boolean> checkInOrExpr(InOrExpr inOrExpr) {
-		if (inOrExpr.expr.size() == 0)
+		if (inOrExpr.expr.size() == 1)
 			return checkExOrExpr(inOrExpr.expr.get(0));
 		for (ExOrExpr e : inOrExpr.expr) {
-			TYPE t = checkExOrExpr(e).first;
+			Pair<TYPE, Boolean> t = checkExOrExpr(e);
 			if (t == null)
 				return null;
-			if (t instanceof RECORD || t instanceof POINTER
-					|| t instanceof FUNCTION)
+			if (t.first instanceof RECORD || t.first instanceof POINTER
+					|| t.first instanceof FUNCTION)
 				error("inclusiveOr operator with unmatching operands");
 		}
 		return new Pair<TYPE, Boolean>(INT.getInstance(), false);
@@ -490,11 +491,11 @@ public class Semantic {
 		if (exOrExpr.expr.size() == 1)
 			return checkAndExpr(exOrExpr.expr.get(0));
 		for (AndExpr e : exOrExpr.expr) {
-			TYPE t = checkAndExpr(e).first;
+			Pair<TYPE, Boolean> t = checkAndExpr(e);
 			if (t == null)
 				return null;
-			if (t instanceof RECORD || t instanceof POINTER
-					|| t instanceof FUNCTION)
+			if (t.first instanceof RECORD || t.first instanceof POINTER
+					|| t.first instanceof FUNCTION)
 				error("exclusiveOr operator with unmatching operands");
 		}
 		return new Pair<TYPE, Boolean>(INT.getInstance(), false);
@@ -504,11 +505,11 @@ public class Semantic {
 		if (andExpr.expr.size() == 1)
 			return checkEquExpr(andExpr.expr.get(0));
 		for (EquExpr e : andExpr.expr) {
-			TYPE t = checkEquExpr(e).first;
+			Pair<TYPE, Boolean> t = checkEquExpr(e);
 			if (t == null)
 				return null;
-			if (t instanceof RECORD || t instanceof POINTER
-					|| t instanceof FUNCTION)
+			if (t.first instanceof RECORD || t.first instanceof POINTER
+					|| t.first instanceof FUNCTION)
 				error("and operator with unmatching operands");
 		}
 		return new Pair<TYPE, Boolean>(INT.getInstance(), false);
@@ -518,10 +519,10 @@ public class Semantic {
 		if (equExpr.expr.size() == 1)
 			return checkRelExpr(equExpr.expr.get(0));
 		for (RelExpr e : equExpr.expr) {
-			TYPE t = checkRelExpr(e).first;
+			Pair<TYPE, Boolean> t = checkRelExpr(e);
 			if (t == null)
 				return null;
-			if (t instanceof RECORD || t instanceof NAME)
+			if (t.first instanceof RECORD || t.first instanceof NAME)
 				error("equality operator with unmatching operands");
 		}
 		return new Pair<TYPE, Boolean>(INT.getInstance(), false);
@@ -531,10 +532,10 @@ public class Semantic {
 		if (relExpr.expr.size() == 1)
 			return checkShiftExpr(relExpr.expr.get(0));
 		for (ShiftExpr e : relExpr.expr) {
-			TYPE t = checkShiftExpr(e).first;
+			Pair<TYPE, Boolean> t = checkShiftExpr(e);
 			if (t == null)
 				return null;
-			if (t instanceof RECORD || t instanceof NAME)
+			if (t.first instanceof RECORD || t.first instanceof NAME)
 				error("relation operator with unmatching operands");
 		}
 		return new Pair<TYPE, Boolean>(INT.getInstance(), false);
@@ -544,10 +545,10 @@ public class Semantic {
 		if (shiftExpr.expr.size() == 1)
 			return checkAddExpr(shiftExpr.expr.get(0));
 		for (AddExpr e : shiftExpr.expr) {
-			TYPE t = checkAddExpr(e).first;
+			Pair<TYPE, Boolean> t = checkAddExpr(e);
 			if (t == null)
 				return null;
-			if (!(t instanceof INT) && !(t instanceof CHAR))
+			if (!(t.first instanceof INT) && !(t.first instanceof CHAR))
 				error("shift operator with unmatching operands");
 		}
 		return new Pair<TYPE, Boolean>(INT.getInstance(), false);
@@ -561,23 +562,23 @@ public class Semantic {
 
 		for (int i = 0; i < addExpr.expr.size(); i++) {
 			MulExpr m = addExpr.expr.get(i);
-			TYPE t = checkMulExpr(m).first;
+			Pair<TYPE, Boolean> t = checkMulExpr(m);
 			if (retnType == null) {
-				retnType = t;
+				retnType = t.first;
 				continue;
 			}
 			if ((retnType instanceof INT || retnType instanceof CHAR)
-					&& (t instanceof INT || t instanceof CHAR)) {
+					&& (t.first instanceof INT || t.first instanceof CHAR)) {
 				retnType = INT.getInstance();
 				continue;
 			}
 			if ((retnType instanceof POINTER || (retnType instanceof FUNCTION && ((FUNCTION) retnType).defined))
-					&& (t instanceof INT || t instanceof CHAR))
+					&& (t.first instanceof INT || t.first instanceof CHAR))
 				continue;
-			if (addExpr.op.get(i) == BinOp.ADD
-					&& (t instanceof POINTER || (t instanceof FUNCTION && ((FUNCTION) t).defined))
+			if (addExpr.op.get(i - 1) == BinOp.ADD
+					&& (t.first instanceof POINTER || (t.first instanceof FUNCTION && ((FUNCTION) t.first).defined))
 					&& (retnType instanceof INT || retnType instanceof CHAR)) {
-				retnType = t;
+				retnType = t.first;
 				continue;
 			}
 			error("add operator with unmatching operands");
@@ -589,10 +590,10 @@ public class Semantic {
 		if (mulExpr.expr.size() == 1)
 			return checkCastExpr(mulExpr.expr.get(0));
 		for (CastExpr e : mulExpr.expr) {
-			TYPE t = checkCastExpr(e).first;
+			Pair<TYPE, Boolean> t = checkCastExpr(e);
 			if (t == null)
 				return null;
-			if (!(t instanceof INT) && !(t instanceof CHAR))
+			if (!(t.first instanceof INT) && !(t.first instanceof CHAR))
 				error("mul operator with unmatching operands");
 		}
 		return new Pair<TYPE, Boolean>(INT.getInstance(), false);
@@ -737,7 +738,15 @@ public class Semantic {
 		if (!(t instanceof FUNCTION))
 			error("function postfix need a function");
 		else {
-			if (isParaMatch((FUNCTION) t, p.arguments.assExpr))
+
+			List<TYPE> l = new ArrayList<TYPE>();
+			if (p.arguments != null && p.arguments.assExpr != null)
+				for (AssExpr expr : p.arguments.assExpr) {
+					Pair<TYPE, Boolean> pair = checkAssExpr(expr);
+					l.add(pair == null ? null : pair.first);
+				}
+
+			if (isParaMatch((FUNCTION) t, l))
 				return new Pair<TYPE, Boolean>(
 						((FUNCTION) t).getFinalReturnType(), false);
 			else
@@ -746,21 +755,38 @@ public class Semantic {
 		return null;
 	}
 
-	private boolean isParaMatch(FUNCTION t, List<AssExpr> assExpr) {
-		// TODO Auto-generated method stub
+	private boolean isParaMatch(FUNCTION t, List<TYPE> typeList) {
+		TYPE type = t;
+		int i;
+		for (i = 0; i < typeList.size() && type instanceof FUNCTION; i++) {
+			TYPE arguType = typeList.get(i);
+			FUNCTION func = (FUNCTION) type;
+
+			if (func.argumentType == INT.getInstance()
+					|| func.argumentType == CHAR.getInstance()) {
+				if (arguType != INT.getInstance()
+						&& arguType != CHAR.getInstance())
+					return false;
+			} else if (!func.argumentType.equals(arguType))
+				return false;
+
+			type = func.returnType;
+		}
+		if (i < typeList.size())
+			return t.varyingArgument;
 		return true;
 	}
 
 	private Pair<TYPE, Boolean> checkArrPostfix(TYPE t, ArrPostfix p) {
 		if (t == null)
 			return null;
-		if (!(t instanceof ARRAY))
-			error("ArrPostfix need an array");
+		if (!(t instanceof POINTER))
+			error("ArrPostfix need an pointer");
 		else {
 			Pair<TYPE, Boolean> type = checkExpr((Expr) p.expression);
 			if (!(type.first instanceof INT) && !(type.first instanceof CHAR))
 				error("wrong type of array index");
-			return new Pair<TYPE, Boolean>(((ARRAY) t).elementType, true);
+			return new Pair<TYPE, Boolean>(((POINTER) t).elementType, true);
 		}
 		return null;
 	}
@@ -769,8 +795,10 @@ public class Semantic {
 		Expression e = priExpr.exp;
 		if (e instanceof Id) {
 			TYPE t = env.getByIdenName(((Id) e).symbol);
-			if (t == null)
+			if (t == null) {
 				error("undefined identifier");
+				System.out.println("idef" + ((Id) e).symbol);
+			}
 			if (t instanceof FUNCTION || t instanceof ARRAY)
 				return new Pair<TYPE, Boolean>(t, false);
 			return new Pair<TYPE, Boolean>(t, true);
@@ -800,7 +828,11 @@ public class Semantic {
 
 	private boolean canCast(TYPE fromType, TYPE toType) {
 		// TODO Add more information of cast
-		if (fromType == VOID.getInstance() || toType == VOID.getInstance())
+		if (fromType == null)
+			return toType == null;
+		if (!fromType.equals(toType)
+				&& (fromType == VOID.getInstance() || toType == VOID
+						.getInstance()))
 			return false;
 		return true;
 	}

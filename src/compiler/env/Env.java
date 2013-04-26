@@ -5,6 +5,7 @@ import compiler.symbol.Table;
 import compiler.type.CHAR;
 import compiler.type.FUNCTION;
 import compiler.type.INT;
+import compiler.type.POINTER;
 import compiler.type.RECORD;
 import compiler.type.TYPE;
 import compiler.type.VOID;
@@ -41,6 +42,10 @@ public final class Env {
 	 */
 	private void initFuncEnv() {
 		funcEnv = new Table();
+		funcEnv.put(sym("printf"), new FUNCTION(
+				new POINTER(CHAR.getInstance()), INT.getInstance(), true, true));
+		funcEnv.put(sym("malloc"), new FUNCTION(INT.getInstance(), new POINTER(
+				VOID.getInstance()), true, true));
 	}
 
 	public void beginScope() {
@@ -88,6 +93,8 @@ public final class Env {
 
 	public TYPE getByIdenName(Symbol name) {
 		Object obj = idenEnv.get(name);
+		if (obj == null)
+			obj = funcEnv.get(name);
 		if (obj == null)
 			return null;
 		return (TYPE) obj;

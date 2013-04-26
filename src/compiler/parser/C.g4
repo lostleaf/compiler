@@ -375,6 +375,7 @@ fragment EOL : '\r' | '\n' | ('\r''\n') ;
 
 Multi_comment : '/*' .*? '*/' -> channel(HIDDEN);
 Single_comment : '//' ~[\r\n]* (EOL) -> channel(HIDDEN);
+Preprocessing : '#' ~[\r\n]* (EOL) -> channel(HIDDEN);
 
 Hex : '0' ('x'|'X') HexDigit+ ;
 Dec : '0' | ('1'..'9' Digit*)  ;

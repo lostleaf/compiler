@@ -38,6 +38,8 @@ public class Table {
 	 * Puts the specified value into the Table, bound to the specified Symbol.
 	 */
 	public void put(Symbol key, Object value) {
+		if (key == null)
+			key = Symbol.symbol("");
 		dict.put(key, new Binder(value, top, dict.get(key)));
 		top = key;
 	}

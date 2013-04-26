@@ -9,13 +9,20 @@ public class POINTER extends TYPE {
 
 	@Override
 	public boolean isArray() {
-		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (o == null)
+			return false;
+		if (o instanceof POINTER)
+			return this.elementType.equals(((POINTER) o).elementType);
 		return false;
 	}
 
 	@Override
 	public boolean isRecord() {
-		// TODO Auto-generated method stub
 		return false;
 	}
 

@@ -14,6 +14,11 @@ public class VOID extends TYPE {
 	}
 
 	@Override
+	public boolean equals(Object o) {
+		return o == instance;
+	}
+
+	@Override
 	public boolean isArray() {
 		return false;
 	}

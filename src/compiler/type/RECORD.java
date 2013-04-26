@@ -16,6 +16,7 @@ public class RECORD extends TYPE {
 			this.type = type;
 			this.name = name;
 		}
+
 	}
 
 	public List<RecordField> fields;
@@ -24,6 +25,13 @@ public class RECORD extends TYPE {
 	public RECORD(Symbol name) {
 		fields = new ArrayList<RecordField>();
 		this.name = name;
+	}
+
+	public boolean hasField(Symbol name) {
+		for (RecordField rf : fields)
+			if (name.equals(rf.name))
+				return true;
+		return false;
 	}
 
 	public void addField(TYPE type, Symbol name) {
