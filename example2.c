@@ -1,16 +1,13 @@
-int main()
-{
-  int abc;
-  int b  ;
 
-  abc = 0;
-  b = 10;
 
-  {
-    int b;
-    b = 20;
-    a = a + b;
-  }
 
+int nfactor(int n) {
+  if (n == 0) return 1 ;
+  else return n * nfactor(n - 1);
+}
+
+int main() {
+  int a = nfactor(6);
+  printf("%d\n", a);
   return a;
 }
