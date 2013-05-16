@@ -1,4 +1,4 @@
-package compiler.semantic.builder;
+package compiler.builder;
 
 import java.util.List;
 

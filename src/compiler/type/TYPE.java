@@ -1,6 +1,7 @@
 package compiler.type;
 
 import compiler.symbol.Symbol;
+import compiler.temp.Addr;
 
 public abstract class TYPE {
 
@@ -14,4 +15,5 @@ public abstract class TYPE {
 	
 	public abstract boolean isRecord();
 	
+	public Addr size;
 }

@@ -1,8 +1,11 @@
 package compiler.type;
 
+import compiler.temp.IntConstant;
+
 public class VOID extends TYPE {
 
 	private VOID() {
+		size = new IntConstant(0);
 	}
 
 	static private VOID instance = null;

@@ -1,4 +1,4 @@
-package compiler.semantic.builder;
+package compiler.builder;
 
 import compiler.type.ARRAY;
 import compiler.type.POINTER;
@@ -7,7 +7,6 @@ import compiler.type.TYPE;
 public class ArrayBuilder {
 
 	public static TYPE build(TYPE t, int starCount, int exprCount) {
-		// FIXME unknown capacity
 		for (int i = 0; i < starCount; i++)
 			t = new POINTER(t);
 		for (int i = 0; i < exprCount; i++)

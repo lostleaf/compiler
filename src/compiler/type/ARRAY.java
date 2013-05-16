@@ -1,11 +1,23 @@
 package compiler.type;
 
+import compiler.temp.Addr;
+import compiler.temp.IntConstant;
+
 public final class ARRAY extends POINTER {
-	int capacity;
+	public Addr capacity;
 
 	public ARRAY(TYPE type, int cap) {
+		this(type, new IntConstant(cap));
+	}
+
+	public ARRAY(TYPE type, Addr c) {
+		this(type, c, c);
+	}
+
+	public ARRAY(TYPE type, Addr capacity, Addr totalSize) {
 		super(type);
-		capacity = cap;
+		this.capacity = capacity;
+		this.size = totalSize;
 	}
 
 	@Override

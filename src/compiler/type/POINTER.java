@@ -1,10 +1,13 @@
 package compiler.type;
 
+import compiler.temp.IntConstant;
+
 public class POINTER extends TYPE {
 	public TYPE elementType;
 
 	public POINTER(TYPE type) {
-		this.elementType = type;
+		elementType = type;
+		size = new IntConstant(4);
 	}
 
 	@Override

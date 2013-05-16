@@ -68,9 +68,9 @@ import compiler.absyn.UnaryOp;
 import compiler.absyn.ValAttrPostfix;
 import compiler.absyn.VoidType;
 import compiler.absyn.WhileStmt;
+import compiler.builder.ArrayBuilder;
+import compiler.builder.FunctionBuilder;
 import compiler.env.Env;
-import compiler.semantic.builder.ArrayBuilder;
-import compiler.semantic.builder.FunctionBuilder;
 import compiler.symbol.Symbol;
 import compiler.type.ARRAY;
 import compiler.type.CHAR;
@@ -827,7 +827,6 @@ public class Semantic {
 	}
 
 	private boolean canCast(TYPE fromType, TYPE toType) {
-		// TODO Add more information of cast
 		if (fromType == null)
 			return toType == null;
 		if (!fromType.equals(toType)
