@@ -1,8 +1,8 @@
 package compiler.absyn;
 
 public class ForStmt extends IterStmt {
-	public Expr begin, cond, end;
-	public Stmt stmt;
+	public Expr begin, end;
+
 	public ForStmt(Expr begin, Expr cond, Expr end, Stmt stmt) {
 		super();
 		this.begin = begin;
@@ -10,5 +10,5 @@ public class ForStmt extends IterStmt {
 		this.end = end;
 		this.stmt = stmt;
 	}
-	
+
 }

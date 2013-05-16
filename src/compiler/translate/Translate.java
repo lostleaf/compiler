@@ -16,6 +16,7 @@ import compiler.absyn.Declarator;
 import compiler.absyn.Declarators;
 import compiler.absyn.Expr;
 import compiler.absyn.ExprStmt;
+import compiler.absyn.ForStmt;
 import compiler.absyn.FunDeclarator;
 import compiler.absyn.FunctionDefinition;
 import compiler.absyn.Id;
@@ -441,8 +442,23 @@ public class Translate {
 	}
 
 	private void transIterStmt(IterStmt stmt, TYPE type, Label funcLabel) {
-		// TODO Auto-generated method stub
+		Label iterLabel = new Label(), continueLabel = new Label(), endLabel = new Label();
+		if (stmt instanceof ForStmt && ((ForStmt) stmt).begin != null)
+			transExpr(((ForStmt) stmt).begin);
 
+		emit(new LabelQuad(iterLabel), false);
+		Addr addr = transExpr(stmt.cond);
+		Temp temp = loadToTemp(addr, false);
+		emit(new IfFalse(temp, endLabel), false);
+
+		transStmt(stmt.stmt, type, funcLabel, endLabel, continueLabel);
+
+		emit(new LabelQuad(continueLabel), false);
+		if (stmt instanceof ForStmt && ((ForStmt) stmt).end != null)
+			transExpr(((ForStmt) stmt).end);
+		emit(new Goto(iterLabel), false);
+
+		emit(new LabelQuad(endLabel), false);
 	}
 
 	private void transSelStmt(SelStmt stmt, TYPE type, Label funcLabel,
