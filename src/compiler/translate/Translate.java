@@ -3,6 +3,7 @@ package compiler.translate;
 import java.util.ArrayList;
 import java.util.List;
 
+import compiler.absyn.AddExpr;
 import compiler.absyn.AndExpr;
 import compiler.absyn.ArrDeclarator;
 import compiler.absyn.AssExpr;
@@ -17,7 +18,6 @@ import compiler.absyn.ContinueStmt;
 import compiler.absyn.Declaration;
 import compiler.absyn.Declarator;
 import compiler.absyn.Declarators;
-import compiler.absyn.EquExpr;
 import compiler.absyn.ExOrExpr;
 import compiler.absyn.Expr;
 import compiler.absyn.ExprStmt;
@@ -41,7 +41,6 @@ import compiler.absyn.Parameters;
 import compiler.absyn.PlainDeclaration;
 import compiler.absyn.Program;
 import compiler.absyn.RecordType;
-import compiler.absyn.RelExpr;
 import compiler.absyn.ReturnStmt;
 import compiler.absyn.SelStmt;
 import compiler.absyn.Stmt;
@@ -86,12 +85,13 @@ public class Translate {
 	private Env env = null;
 	private List<Quad> quads = new ArrayList<Quad>();
 	private List<Quad> topLevelQuads = new ArrayList<Quad>();
+	private boolean isTopLevel = true;
 
 	public Translate() {
 		env = new Env();
 	}
 
-	public void emit(Quad q, boolean isTopLevel) {
+	public void emit(Quad q) {
 		if (isTopLevel)
 			topLevelQuads.add(q);
 		else
@@ -101,37 +101,35 @@ public class Translate {
 	// =====================================
 	// builder methods
 
-	private void emitMove(Addr target, Addr source, boolean isTopLevel) {
+	private void emitMove(Addr target, Addr source) {
 		if (target instanceof Reference && source instanceof Reference)
-			source = loadToTemp((Reference) source, isTopLevel);
-		emit(new Move(target, source), isTopLevel);
+			source = loadToTemp((Reference) source);
+		emit(new Move(target, source));
 	}
 
-	private void emitBinop(Temp target, Addr addr1, Addr addr2, BinOp op,
-			boolean isTopLevel) {
+	private void emitBinop(Temp target, Addr addr1, Addr addr2, BinOp op) {
 		if (addr1 instanceof Reference)
-			addr1 = loadToTemp((Reference) addr1, isTopLevel);
+			addr1 = loadToTemp((Reference) addr1);
 
 		if (addr2 instanceof Reference)
-			addr2 = loadToTemp((Reference) addr2, isTopLevel);
+			addr2 = loadToTemp((Reference) addr2);
 
-		emit(new Binop(target, addr1, addr2, op), isTopLevel);
+		emit(new Binop(target, addr1, addr2, op));
 	}
 
-	private void emitCall(Temp target, Addr source, List<Temp> params,
-			boolean isTopLevel) {
-		emit(new Call(target, source, params), isTopLevel);
+	private void emitCall(Temp target, Addr source, List<Temp> params) {
+		emit(new Call(target, source, params));
 	}
 
 	private void emitLabel(Label label) {
-		emit(new LabelQuad(label), false);
+		emit(new LabelQuad(label));
 	}
 
 	private void emitCall(Temp target, Addr source, Temp param,
 			boolean isTopLevel) {
 		List<Temp> params = new ArrayList<Temp>();
 		params.add(param);
-		emit(new Call(target, source, params), isTopLevel);
+		emit(new Call(target, source, params));
 	}
 
 	// =====================================
@@ -140,105 +138,107 @@ public class Translate {
 	private Temp loadRefToTemp(Addr addr) {
 		Temp temp = new Temp();
 		if (addr instanceof Temp)
-			emitMove(temp, addr, false);
+			emitMove(temp, addr);
 		else
 			emitBinop(temp, ((Reference) addr).base, ((Reference) addr).offset,
-					BinOp.ADD, false);
+					BinOp.ADD);
 		return temp;
 	}
 
 	private void copyStruct(STRUCT type, Addr l, Addr r) {
 
 		Temp lt = loadRefToTemp(l), rt = loadRefToTemp(r);
-		Temp os = loadToTemp(new IntConstant(0), false);
+		Temp os = loadToTemp(new IntConstant(0));
 
 		Label startLabel = new Label();
-		emit(new LabelQuad(startLabel), false);
+		emit(new LabelQuad(startLabel));
 
 		Temp temp = new Temp();
-		emitMove(new Reference(rt, os), new Reference(lt, os), false);
-		emitBinop(os, os, new IntConstant(4), BinOp.ADD, false);
-		emitBinop(temp, os, type.size, BinOp.LESS, false);
-		emit(new IfTrue(temp, startLabel), false);
+		emitMove(new Reference(rt, os), new Reference(lt, os));
+		emitBinop(os, os, new IntConstant(4), BinOp.ADD);
+		emitBinop(temp, os, type.size, BinOp.LESS);
+		emit(new IfTrue(temp, startLabel));
 	}
 
-	private Temp loadToTemp(Addr r, boolean isTopLevel) {
+	private Temp loadToTemp(Addr r) {
 		Temp temp = new Temp();
-		emit(new Move(temp, r), isTopLevel);
+		emit(new Move(temp, r));
 		return temp;
 	}
 
-	private Temp allocate(Addr totalSize, boolean isTopLevel) {
+	private Temp allocate(Addr totalSize) {
 		if (!(totalSize instanceof Temp))
-			totalSize = loadToTemp(totalSize, isTopLevel);
+			totalSize = loadToTemp(totalSize);
 		Addr mAddr = env.getAddr(Symbol.symbol("malloc"));
 		Temp ret = new Temp();
 		emitCall(ret, mAddr, (Temp) totalSize, isTopLevel);
 		return ret;
 	}
 
-	private Temp allocate(TYPE type, boolean isTopLevel) {
+	private Temp allocate(TYPE type) {
 		Temp temp = null;
 
 		if (type instanceof STRUCT || type instanceof ARRAY)
-			temp = allocate(type.size, isTopLevel);
+			temp = allocate(type.size);
 
 		if (temp == null)
 			temp = new Temp();
 		return temp;
 	}
 
-	private void copyStruct(Temp target, AddrList source, boolean isTopLevel,
-			STRUCT type) {
+	private void copyStruct(Temp target, AddrList source, STRUCT type) {
 
 		// XXX might be wrong for char
-		Temp ptr = loadToTemp(target, isTopLevel);
+		Temp ptr = loadToTemp(target);
 		for (int i = 0; i < source.addrs.size(); i++) {
 			RecordField rf = type.fields.get(i);
 			Addr addr = source.addrs.get(i);
 			if (rf.type instanceof STRUCT)
-				copyStruct(ptr, (AddrList) addr, isTopLevel, (STRUCT) rf.type);
+				copyStruct(ptr, (AddrList) addr, (STRUCT) rf.type);
 			else {
 				if (rf.type instanceof ARRAY)
-					copyArray(ptr, (AddrList) addr, isTopLevel, (ARRAY) rf.type);
+					copyArray(ptr, (AddrList) addr, (ARRAY) rf.type);
 				else
-					emitMove(new Reference(ptr), addr, isTopLevel);
+					emitMove(new Reference(ptr), addr);
 			}
-			emitBinop(ptr, ptr, rf.type.size, BinOp.ADD, isTopLevel);
+			emitBinop(ptr, ptr, rf.type.size, BinOp.ADD);
 		}
 	}
 
-	private void copyArray(Temp target, AddrList source, boolean isTopLevel,
-			ARRAY type) {
-		Temp ptr = loadToTemp(target, isTopLevel);
+	private void copyArray(Temp target, AddrList source, ARRAY type) {
+		Temp ptr = loadToTemp(target);
 		TYPE eleType = type.elementType;
 		for (int i = 0; i < source.addrs.size(); i++) {
 			Addr addr = source.addrs.get(i);
 			if (eleType instanceof STRUCT)
-				copyStruct(ptr, (AddrList) addr, isTopLevel, (STRUCT) eleType);
+				copyStruct(ptr, (AddrList) addr, (STRUCT) eleType);
 			else {
 				if (eleType instanceof ARRAY)
-					copyArray(ptr, (AddrList) addr, isTopLevel, (ARRAY) eleType);
+					copyArray(ptr, (AddrList) addr, (ARRAY) eleType);
 				else
-					emitMove(new Reference(ptr), addr, isTopLevel);
+					emitMove(new Reference(ptr), addr);
 			}
-			emitBinop(ptr, ptr, eleType.size, BinOp.ADD, isTopLevel);
+			emitBinop(ptr, ptr, eleType.size, BinOp.ADD);
 		}
 	}
 
 	// =====================================
 
 	public void transProgram(Program program) {
+		isTopLevel = true;
 		for (Node node : program.node) {
 			if (node instanceof Declaration)
-				transDeclaration((Declaration) node, true);
-			if (node instanceof FunctionDefinition)
+				transDeclaration((Declaration) node);
+			if (node instanceof FunctionDefinition) {
+				isTopLevel = false;
 				transFunctionDefinition((FunctionDefinition) node);
+				isTopLevel = true;
+			}
 		}
 	}
 
-	private void transDeclaration(Declaration decl, boolean isTopLevel) {
-		TYPE type = transTypeSpecifier(decl.typeSpecifier, isTopLevel);
+	private void transDeclaration(Declaration decl) {
+		TYPE type = transTypeSpecifier(decl.typeSpecifier);
 		if (decl.declarators != null) {
 
 			List<Pair<TYPE, Symbol>> list = transDeclarators(decl.declarators,
@@ -246,10 +246,10 @@ public class Translate {
 
 			for (Pair<TYPE, Symbol> pair : list) {
 				env.putIden(pair.first, pair.second);
-				env.putAddr(pair.second, allocate(pair.first, isTopLevel));
+				env.putAddr(pair.second, allocate(pair.first));
 			}
 		} else
-			transInitDeclarators(decl.initDeclarators, type, isTopLevel);
+			transInitDeclarators(decl.initDeclarators, type);
 	}
 
 	private List<Pair<TYPE, Symbol>> transDeclarators(Declarators declarators,
@@ -288,7 +288,7 @@ public class Translate {
 			Addr addr = transConstExpr(constExpr).first;
 
 			Temp temp = new Temp();
-			emitBinop(temp, addr, last, BinOp.MUL, false);
+			emitBinop(temp, addr, last, BinOp.MUL);
 			type = new ARRAY(type, addr, temp);
 
 			last = ((ARRAY) type).size;
@@ -324,11 +324,10 @@ public class Translate {
 	}
 
 	private Pair<TYPE, Symbol> transPlainDeclaration(PlainDeclaration p) {
-		return transDeclarator(p.declarator, transTypeSpecifier(p.type, false));
+		return transDeclarator(p.declarator, transTypeSpecifier(p.type));
 	}
 
-	private void transInitDeclarators(InitDeclarators initDeclarators,
-			TYPE type, boolean isTopLevel) {
+	private void transInitDeclarators(InitDeclarators initDeclarators, TYPE type) {
 		for (InitDeclarator initd : initDeclarators.initDecl)
 			transInitDeclarator(initd, type, isTopLevel);
 	}
@@ -336,7 +335,7 @@ public class Translate {
 	private void transInitDeclarator(InitDeclarator initd, TYPE type,
 			boolean isTopLevel) {
 		Pair<TYPE, Symbol> pair = transDeclarator(initd.declarator, type);
-		Temp temp = allocate(pair.first, isTopLevel);
+		Temp temp = allocate(pair.first);
 
 		env.putIden(pair.first, pair.second);
 		env.putAddr(pair.second, temp);
@@ -347,13 +346,12 @@ public class Translate {
 		Addr addr = transInitializer(initd.initializer, pair.first);
 
 		if (pair.first instanceof ARRAY)
-			copyArray(temp, (AddrList) addr, isTopLevel, (ARRAY) pair.first);
+			copyArray(temp, (AddrList) addr, (ARRAY) pair.first);
 		else {
 			if (pair.first instanceof STRUCT)
-				copyStruct(temp, (AddrList) addr, isTopLevel,
-						(STRUCT) pair.first);
+				copyStruct(temp, (AddrList) addr, (STRUCT) pair.first);
 			else
-				emitMove(temp, addr, isTopLevel);
+				emitMove(temp, addr);
 		}
 	}
 
@@ -369,7 +367,7 @@ public class Translate {
 		}
 	}
 
-	private TYPE transTypeSpecifier(TypeSpecifier typeSpec, boolean isTopLevel) {
+	private TYPE transTypeSpecifier(TypeSpecifier typeSpec) {
 
 		if (typeSpec instanceof VoidType)
 			return VOID.getInstance();
@@ -398,13 +396,13 @@ public class Translate {
 
 			Temp size = new Temp();
 			for (Pair<TypeSpecifier, Declarators> pair : rType.pairs) {
-				TYPE type = transTypeSpecifier(pair.first, isTopLevel);
+				TYPE type = transTypeSpecifier(pair.first);
 				List<Pair<TYPE, Symbol>> pairs = transDeclarators(pair.second,
 						type);
 
 				for (Pair<TYPE, Symbol> p : pairs) {
 					record.addField(p.first, p.second);
-					emitBinop(size, size, p.first.size, BinOp.ADD, isTopLevel);
+					emitBinop(size, size, p.first.size, BinOp.ADD);
 				}
 			}
 			record.size = size;
@@ -415,7 +413,7 @@ public class Translate {
 	}
 
 	private void transFunctionDefinition(FunctionDefinition funcDecl) {
-		TYPE declType = transTypeSpecifier(funcDecl.typeSpecifier, false);
+		TYPE declType = transTypeSpecifier(funcDecl.typeSpecifier);
 		List<Pair<TYPE, Symbol>> list = transParameters(funcDecl.parameters);
 		boolean varparams = funcDecl.parameters == null ? false
 				: funcDecl.parameters.varparams;
@@ -436,7 +434,7 @@ public class Translate {
 				env.putAddr(pair.second, temp);
 				params.add(temp);
 			}
-		emit(new Enter(label, params), false);
+		emit(new Enter(label, params));
 
 		transCompStmt(funcDecl.compStmt, declType, label, null, null);
 		env.endScope();
@@ -462,9 +460,9 @@ public class Translate {
 	private void transJumpStmt(JumpStmt stmt, TYPE type, Label funcLabel,
 			Label breakLabel, Label continueLabel) {
 		if (stmt instanceof ContinueStmt)
-			emit(new Goto(continueLabel), false);
+			emit(new Goto(continueLabel));
 		if (stmt instanceof BreakStmt)
-			emit(new Goto(breakLabel), false);
+			emit(new Goto(breakLabel));
 
 		if (stmt instanceof ReturnStmt) {
 			ReturnStmt r = (ReturnStmt) stmt;
@@ -472,10 +470,10 @@ public class Translate {
 				Addr addr = transExpr(r.expr).first;
 				Temp temp = new Temp();
 				// XXX maybe wrong for structure
-				emitMove(temp, addr, false);
-				emit(new Return(temp), false);
+				emitMove(temp, addr);
+				emit(new Return(temp));
 			}
-			emit(new Leave(funcLabel), false);
+			emit(new Leave(funcLabel));
 		}
 	}
 
@@ -484,20 +482,20 @@ public class Translate {
 		if (stmt instanceof ForStmt && ((ForStmt) stmt).begin != null)
 			transExpr(((ForStmt) stmt).begin);
 
-		emit(new LabelQuad(iterLabel), false);
+		emit(new LabelQuad(iterLabel));
 		Addr addr = transExpr(stmt.cond).first;
-		Temp temp = loadToTemp(addr, false);
-		emit(new IfFalse(temp, endLabel), false);
+		Temp temp = loadToTemp(addr);
+		emit(new IfFalse(temp, endLabel));
 
 		if (stmt.stmt != null)
 			transStmt(stmt.stmt, type, funcLabel, endLabel, continueLabel);
 
-		emit(new LabelQuad(continueLabel), false);
+		emit(new LabelQuad(continueLabel));
 		if (stmt instanceof ForStmt && ((ForStmt) stmt).end != null)
 			transExpr(((ForStmt) stmt).end);
-		emit(new Goto(iterLabel), false);
+		emit(new Goto(iterLabel));
 
-		emit(new LabelQuad(endLabel), false);
+		emit(new LabelQuad(endLabel));
 	}
 
 	private void transSelStmt(SelStmt stmt, TYPE type, Label funcLabel,
@@ -507,17 +505,17 @@ public class Translate {
 		Addr exprAddr = transExpr(stmt.cond).first;
 
 		Temp t = new Temp();
-		emitMove(t, exprAddr, false);
-		emit(new IfFalse(t, elseLabel), false);
+		emitMove(t, exprAddr);
+		emit(new IfFalse(t, elseLabel));
 		transStmt(stmt.thenStmt, type, funcLabel, breakLabel, continueLabel);
 
 		if (stmt.elseStmt != null)
-			emit(new Goto(endLabel), false);
-		emit(new LabelQuad(elseLabel), false);
+			emit(new Goto(endLabel));
+		emit(new LabelQuad(elseLabel));
 
 		if (stmt.elseStmt != null) {
 			transStmt(stmt.elseStmt, type, funcLabel, breakLabel, continueLabel);
-			emit(new LabelQuad(endLabel), false);
+			emit(new LabelQuad(endLabel));
 		}
 	}
 
@@ -530,7 +528,7 @@ public class Translate {
 			Label breakLabel, Label continueLabel) {
 		env.beginScope();
 		for (Declaration d : compStmt.declaration)
-			transDeclaration(d, false);
+			transDeclaration(d);
 		for (Stmt stmt : compStmt.stmt)
 			transStmt(stmt, type, funcLabel, breakLabel, continueLabel);
 		env.endScope();
@@ -555,21 +553,19 @@ public class Translate {
 		Pair<Addr, TYPE> rExpr = transAssExpr(assExpr.assExpr);
 		if (lExpr == null || rExpr == null)
 			return null;
+
 		if (assExpr.op == BinOp.ASSIGN) {
 			if (lExpr.second instanceof STRUCT)
 				copyStruct((STRUCT) lExpr.second, lExpr.first, rExpr.first);
 			else
-				emitMove(lExpr.first, rExpr.first, false);
+				emitMove(lExpr.first, rExpr.first);
 		} else {
 			Temp temp = new Temp();
-			emitBinop(
-					temp,
-					lExpr.first,
-					rExpr.first,
-					BinOp.values()[assExpr.op.ordinal()
-							- (BinOp.ADDASSIGN.ordinal() - BinOp.ADD.ordinal())],
-					false);
-			emitMove(lExpr.first, temp, false);
+			BinOp op = BinOp.values()[assExpr.op.ordinal()
+					- (BinOp.ADDASSIGN.ordinal() - BinOp.ADD.ordinal())];
+
+			emitBinop(temp, lExpr.first, rExpr.first, op);
+			emitMove(lExpr.first, temp);
 		}
 		return lExpr;
 	}
@@ -581,49 +577,50 @@ public class Translate {
 		Label successLabel = new Label(), endLabel = new Label();
 		for (LogAndExpr expr : logOrExpr.expr) {
 			Pair<Addr, TYPE> pair = transLogAndExpr(expr);
-			emit(new IfTrue(pair.first, successLabel), false);
+			emit(new IfTrue(pair.first, successLabel));
 		}
 
 		Temp temp = new Temp();
-		emitMove(temp, new IntConstant(0), false);
-		emit(new Goto(endLabel), false);
+		emitMove(temp, new IntConstant(0));
+		emit(new Goto(endLabel));
 
-		emit(new LabelQuad(successLabel), false);
-		emitMove(temp, new IntConstant(1), false);
-		emit(new LabelQuad(endLabel), false);
+		emit(new LabelQuad(successLabel));
+		emitMove(temp, new IntConstant(1));
+		emit(new LabelQuad(endLabel));
 		return new Pair<Addr, TYPE>(temp, INT.getInstance());
 	}
 
 	private Pair<Addr, TYPE> transLogAndExpr(LogAndExpr logAndExpr) {
 		if (logAndExpr.expr.size() == 1)
-			return transInOrExpr(logAndExpr.expr.get(0));
+			return transBinExpr(logAndExpr.expr.get(0));
 
 		Label failLabel = new Label(), endLabel = new Label();
 		for (InOrExpr expr : logAndExpr.expr) {
-			Pair<Addr, TYPE> pair = transInOrExpr(expr);
-			emit(new IfFalse(pair.first, failLabel), false);
+			Pair<Addr, TYPE> pair = transBinExpr(expr);
+			emit(new IfFalse(pair.first, failLabel));
 		}
 
 		Temp temp = new Temp();
-		emitMove(temp, new IntConstant(1), false);
-		emit(new Goto(endLabel), false);
+		emitMove(temp, new IntConstant(1));
+		emit(new Goto(endLabel));
 
-		emit(new LabelQuad(failLabel), false);
-		emitMove(temp, new IntConstant(0), false);
-		emit(new LabelQuad(endLabel), false);
+		emit(new LabelQuad(failLabel));
+		emitMove(temp, new IntConstant(0));
+		emit(new LabelQuad(endLabel));
 		return new Pair<Addr, TYPE>(temp, INT.getInstance());
 	}
 
 	private Pair<Addr, TYPE> transBinExpr(Expression expr) {
 		if (expr instanceof CastExpr)
 			return transCastExpr((CastExpr) expr);
+		if (expr instanceof AddExpr)
+			return transAddExpr((AddExpr) expr);
 
 		BinExpr<?> binExpr = (BinExpr<?>) expr;
 		if (binExpr.expr.size() == 1)
 			return transBinExpr((Expression) binExpr.expr.get(0));
 
-		Temp old = loadToTemp(
-				transBinExpr((Expression) binExpr.expr.get(0)).first, false);
+		Temp old = loadToTemp(transBinExpr((Expression) binExpr.expr.get(0)).first);
 
 		BinOp nullOp = null;
 		if (binExpr.op == null) {
@@ -637,91 +634,39 @@ public class Translate {
 
 		for (int i = 1; i < binExpr.expr.size(); i++) {
 			Expression e = (Expression) binExpr.expr.get(i);
-			BinOp op = binExpr.op == null? nullOp : binExpr.op.get(i-1);
-			
+			BinOp op = binExpr.op == null ? nullOp : binExpr.op.get(i - 1);
+
 			Pair<Addr, TYPE> pair = transBinExpr(e);
 			if (old == null) {
-				old = loadToTemp(pair.first, false);
+				old = loadToTemp(pair.first);
 				continue;
 			}
 
 			Temp temp = new Temp();
-			emitBinop(temp, old, pair.first, op, false);
-			old = temp;
-		}
-		return new Pair<Addr, TYPE>(old, INT.getInstance());
-
-	}
-
-	private Pair<Addr, TYPE> transInOrExpr(InOrExpr inOrExpr) {
-		if (inOrExpr.expr.size() == 1)
-			return transExOrExpr(inOrExpr.expr.get(0));
-
-		Temp old = null;
-		for (ExOrExpr expr : inOrExpr.expr) {
-			Pair<Addr, TYPE> pair = transExOrExpr(expr);
-			if (old == null) {
-				old = loadToTemp(pair.first, false);
-				continue;
-			}
-
-			Temp temp = new Temp();
-			emitBinop(temp, old, pair.first, BinOp.OR, false);
+			emitBinop(temp, old, pair.first, op);
 			old = temp;
 		}
 
 		return new Pair<Addr, TYPE>(old, INT.getInstance());
 	}
 
-	private Pair<Addr, TYPE> transExOrExpr(ExOrExpr exOrExpr) {
-		if (exOrExpr.expr.size() == 1)
-			return transAndExpr(exOrExpr.expr.get(0));
-		Temp old = null;
+	private Pair<Addr, TYPE> transAddExpr(AddExpr addExpr) {
+		Pair<Addr, TYPE> old = transBinExpr(addExpr.expr.get(0));
+		// if (addExpr.expr.size() == 1)
+		// return pair;
 
-		for (AndExpr expr : exOrExpr.expr) {
-			Pair<Addr, TYPE> pair = transAndExpr(expr);
-			if (old == null) {
-				old = loadToTemp(pair.first, false);
-				continue;
+		for (int i = 1; i < addExpr.expr.size(); i++) {
+			BinOp op = addExpr.op.get(i - 1);
+			Pair<Addr, TYPE> pair = transBinExpr(addExpr.expr.get(i)); 
+
+			if (old.second instanceof POINTER && op == BinOp.ADD) {
+				Temp offset = new Temp();
+				emitBinop(offset, old.second.size, pair.first,BinOp.MUL);
+				
 			}
-
-			Temp temp = new Temp();
-			emitBinop(temp, old, pair.first, BinOp.XOR, false);
-			old = temp;
 		}
 
-		return new Pair<Addr, TYPE>(old, INT.getInstance());
-	}
-
-	private Pair<Addr, TYPE> transAndExpr(AndExpr andExpr) {
-		if (andExpr.expr.size() == 1)
-			return transEquExpr(andExpr.expr.get(0));
-		Temp old = null;
-
-		for (EquExpr expr : andExpr.expr) {
-			Pair<Addr, TYPE> pair = transEquExpr(expr);
-			if (old == null) {
-				old = loadToTemp(pair.first, false);
-				continue;
-			}
-
-			Temp temp = new Temp();
-			emitBinop(temp, old, pair.first, BinOp.AND, false);
-			old = temp;
-		}
-
-		return new Pair<Addr, TYPE>(old, INT.getInstance());
-	}
-
-	private Pair<Addr, TYPE> transEquExpr(EquExpr equExpr) {
-		if (equExpr.expr.size() == 1)
-			return transRelExpr(equExpr.expr.get(0));
-
-	}
-
-	private Pair<Addr, TYPE> transRelExpr(RelExpr relExpr) {
-		// TODO Auto-generated method stub
-		return null;
+		return old;
 	}
 
 	private Pair<Addr, TYPE> transUnaryExpr(UnaryExpr unaryExpr) {

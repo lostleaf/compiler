@@ -1,0 +1,60 @@
+
+	private Pair<Addr, TYPE> transInOrExpr(InOrExpr inOrExpr) {
+		if (inOrExpr.expr.size() == 1)
+			return transExOrExpr(inOrExpr.expr.get(0));
+
+		Temp old = null;
+		for (ExOrExpr expr : inOrExpr.expr) {
+			Pair<Addr, TYPE> pair = transExOrExpr(expr);
+			if (old == null) {
+				old = loadToTemp(pair.first, false);
+				continue;
+			}
+
+			Temp temp = new Temp();
+			emitBinop(temp, old, pair.first, BinOp.OR, false);
+			old = temp;
+		}
+
+		return new Pair<Addr, TYPE>(old, INT.getInstance());
+	}
+
+	private Pair<Addr, TYPE> transExOrExpr(ExOrExpr exOrExpr) {
+		if (exOrExpr.expr.size() == 1)
+			return transAndExpr(exOrExpr.expr.get(0));
+		Temp old = null;
+
+		for (AndExpr expr : exOrExpr.expr) {
+			Pair<Addr, TYPE> pair = transAndExpr(expr);
+			if (old == null) {
+				old = loadToTemp(pair.first, false);
+				continue;
+			}
+
+			Temp temp = new Temp();
+			emitBinop(temp, old, pair.first, BinOp.XOR, false);
+			old = temp;
+		}
+
+		return new Pair<Addr, TYPE>(old, INT.getInstance());
+	}
+
+	private Pair<Addr, TYPE> transAndExpr(AndExpr andExpr) {
+		if (andExpr.expr.size() == 1)
+			return transEquExpr(andExpr.expr.get(0));
+		Temp old = null;
+
+		for (EquExpr expr : andExpr.expr) {
+			Pair<Addr, TYPE> pair = transEquExpr(expr);
+			if (old == null) {
+				old = loadToTemp(pair.first, false);
+				continue;
+			}
+
+			Temp temp = new Temp();
+			emitBinop(temp, old, pair.first, BinOp.AND, false);
+			old = temp;
+		}
+
+		return new Pair<Addr, TYPE>(old, INT.getInstance());
+	}
