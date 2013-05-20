@@ -3,16 +3,9 @@ package compiler.quad;
 import compiler.absyn.BinOp;
 import compiler.temp.Addr;
 import compiler.temp.Temp;
+import compiler.util.Config;
 
-public class Binop extends Quad {
-	// ADD, SUB, MUL, DIV, MOD, LEFTSHIFT, RIGHTSHIFT, LESS,
-	// LEQ, GREATER, GEQ, EQ, NEQ, ASSIGN, MULASSIGN, DIVASSIGN,
-	// MODASSIGN, ADDASSIGN, SUBASSIGN, LSHASSIGN, RSHASSIGN,
-	// ANDASSIGN, XORASSIGN, ORASSIGN
-
-	private static String opStr[] = { "+", "-", "*", "/", "%", "<<", ">>", "<",
-			"<=", ">", ">=", "==", "!=", "=", "*=", "/=", "%=", "+=", "-=",
-			"<<=", ">>=", "+=", "^=", "|=" };
+public class Binop extends Quad implements Config {
 
 	public Temp target;
 	public Addr addr1, addr2;

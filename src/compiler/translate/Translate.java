@@ -3,10 +3,13 @@ package compiler.translate;
 import java.util.ArrayList;
 import java.util.List;
 
+import compiler.absyn.AndExpr;
 import compiler.absyn.ArrDeclarator;
 import compiler.absyn.AssExpr;
+import compiler.absyn.BinExpr;
 import compiler.absyn.BinOp;
 import compiler.absyn.BreakStmt;
+import compiler.absyn.CastExpr;
 import compiler.absyn.CharType;
 import compiler.absyn.CompStmt;
 import compiler.absyn.ConstExpr;
@@ -14,29 +17,37 @@ import compiler.absyn.ContinueStmt;
 import compiler.absyn.Declaration;
 import compiler.absyn.Declarator;
 import compiler.absyn.Declarators;
+import compiler.absyn.EquExpr;
+import compiler.absyn.ExOrExpr;
 import compiler.absyn.Expr;
 import compiler.absyn.ExprStmt;
+import compiler.absyn.Expression;
 import compiler.absyn.ForStmt;
 import compiler.absyn.FunDeclarator;
 import compiler.absyn.FunctionDefinition;
 import compiler.absyn.Id;
+import compiler.absyn.InOrExpr;
 import compiler.absyn.InitDeclarator;
 import compiler.absyn.InitDeclarators;
 import compiler.absyn.Initializer;
 import compiler.absyn.IntType;
 import compiler.absyn.IterStmt;
 import compiler.absyn.JumpStmt;
+import compiler.absyn.LogAndExpr;
+import compiler.absyn.LogOrExpr;
 import compiler.absyn.NameType;
 import compiler.absyn.Node;
 import compiler.absyn.Parameters;
 import compiler.absyn.PlainDeclaration;
 import compiler.absyn.Program;
 import compiler.absyn.RecordType;
+import compiler.absyn.RelExpr;
 import compiler.absyn.ReturnStmt;
 import compiler.absyn.SelStmt;
 import compiler.absyn.Stmt;
 import compiler.absyn.StructUnion;
 import compiler.absyn.TypeSpecifier;
+import compiler.absyn.UnaryExpr;
 import compiler.absyn.VoidType;
 import compiler.builder.FunctionBuilder;
 import compiler.env.Env;
@@ -45,6 +56,7 @@ import compiler.quad.Call;
 import compiler.quad.Enter;
 import compiler.quad.Goto;
 import compiler.quad.IfFalse;
+import compiler.quad.IfTrue;
 import compiler.quad.LabelQuad;
 import compiler.quad.Leave;
 import compiler.quad.Move;
@@ -53,6 +65,7 @@ import compiler.quad.Return;
 import compiler.symbol.Symbol;
 import compiler.temp.Addr;
 import compiler.temp.AddrList;
+import compiler.temp.IntConstant;
 import compiler.temp.Label;
 import compiler.temp.Reference;
 import compiler.temp.Temp;
@@ -123,6 +136,31 @@ public class Translate {
 
 	// =====================================
 	// helper methods
+
+	private Temp loadRefToTemp(Addr addr) {
+		Temp temp = new Temp();
+		if (addr instanceof Temp)
+			emitMove(temp, addr, false);
+		else
+			emitBinop(temp, ((Reference) addr).base, ((Reference) addr).offset,
+					BinOp.ADD, false);
+		return temp;
+	}
+
+	private void copyStruct(STRUCT type, Addr l, Addr r) {
+
+		Temp lt = loadRefToTemp(l), rt = loadRefToTemp(r);
+		Temp os = loadToTemp(new IntConstant(0), false);
+
+		Label startLabel = new Label();
+		emit(new LabelQuad(startLabel), false);
+
+		Temp temp = new Temp();
+		emitMove(new Reference(rt, os), new Reference(lt, os), false);
+		emitBinop(os, os, new IntConstant(4), BinOp.ADD, false);
+		emitBinop(temp, os, type.size, BinOp.LESS, false);
+		emit(new IfTrue(temp, startLabel), false);
+	}
 
 	private Temp loadToTemp(Addr r, boolean isTopLevel) {
 		Temp temp = new Temp();
@@ -247,7 +285,7 @@ public class Translate {
 
 		for (int i = decl.constExpr.size() - 1; i >= 0; i--) {
 			ConstExpr constExpr = decl.constExpr.get(i);
-			Addr addr = transConstExpr(constExpr);
+			Addr addr = transConstExpr(constExpr).first;
 
 			Temp temp = new Temp();
 			emitBinop(temp, addr, last, BinOp.MUL, false);
@@ -321,7 +359,7 @@ public class Translate {
 
 	private Addr transInitializer(Initializer initializer, TYPE type) {
 		if (initializer.assExpr != null)
-			return transAssExpr(initializer.assExpr);
+			return transAssExpr(initializer.assExpr).first;
 		else {
 			AddrList addrList = new AddrList();
 			for (Initializer init : initializer.initializer) {
@@ -431,7 +469,7 @@ public class Translate {
 		if (stmt instanceof ReturnStmt) {
 			ReturnStmt r = (ReturnStmt) stmt;
 			if (r.expr == null) {
-				Addr addr = transExpr(r.expr);
+				Addr addr = transExpr(r.expr).first;
 				Temp temp = new Temp();
 				// XXX maybe wrong for structure
 				emitMove(temp, addr, false);
@@ -447,11 +485,12 @@ public class Translate {
 			transExpr(((ForStmt) stmt).begin);
 
 		emit(new LabelQuad(iterLabel), false);
-		Addr addr = transExpr(stmt.cond);
+		Addr addr = transExpr(stmt.cond).first;
 		Temp temp = loadToTemp(addr, false);
 		emit(new IfFalse(temp, endLabel), false);
 
-		transStmt(stmt.stmt, type, funcLabel, endLabel, continueLabel);
+		if (stmt.stmt != null)
+			transStmt(stmt.stmt, type, funcLabel, endLabel, continueLabel);
 
 		emit(new LabelQuad(continueLabel), false);
 		if (stmt instanceof ForStmt && ((ForStmt) stmt).end != null)
@@ -465,7 +504,7 @@ public class Translate {
 			Label breakLabel, Label continueLabel) {
 		Label elseLabel = new Label();
 		Label endLabel = stmt.elseStmt == null ? elseLabel : new Label();
-		Addr exprAddr = transExpr(stmt.cond);
+		Addr exprAddr = transExpr(stmt.cond).first;
 
 		Temp t = new Temp();
 		emitMove(t, exprAddr, false);
@@ -497,20 +536,201 @@ public class Translate {
 		env.endScope();
 	}
 
-	private Addr transExpr(Expr expr) {
-		return null;
-		// TODO Auto-generated method stub
+	private Pair<Addr, TYPE> transExpr(Expr expr) {
+		Pair<Addr, TYPE> ret = null;
+		for (AssExpr e : expr.assExpr)
+			ret = transAssExpr(e);
+		return ret;
+	}
+
+	private Pair<Addr, TYPE> transConstExpr(ConstExpr constExpr) {
+		return constExpr == null ? null : transLogOrExpr(constExpr.logOrExpr);
+	}
+
+	private Pair<Addr, TYPE> transAssExpr(AssExpr assExpr) {
+		if (assExpr.logOrExpr != null)
+			return transLogOrExpr(assExpr.logOrExpr);
+
+		Pair<Addr, TYPE> lExpr = transUnaryExpr(assExpr.unaryExpr);
+		Pair<Addr, TYPE> rExpr = transAssExpr(assExpr.assExpr);
+		if (lExpr == null || rExpr == null)
+			return null;
+		if (assExpr.op == BinOp.ASSIGN) {
+			if (lExpr.second instanceof STRUCT)
+				copyStruct((STRUCT) lExpr.second, lExpr.first, rExpr.first);
+			else
+				emitMove(lExpr.first, rExpr.first, false);
+		} else {
+			Temp temp = new Temp();
+			emitBinop(
+					temp,
+					lExpr.first,
+					rExpr.first,
+					BinOp.values()[assExpr.op.ordinal()
+							- (BinOp.ADDASSIGN.ordinal() - BinOp.ADD.ordinal())],
+					false);
+			emitMove(lExpr.first, temp, false);
+		}
+		return lExpr;
+	}
+
+	private Pair<Addr, TYPE> transLogOrExpr(LogOrExpr logOrExpr) {
+		if (logOrExpr.expr.size() == 1)
+			return transLogAndExpr(logOrExpr.expr.get(0));
+
+		Label successLabel = new Label(), endLabel = new Label();
+		for (LogAndExpr expr : logOrExpr.expr) {
+			Pair<Addr, TYPE> pair = transLogAndExpr(expr);
+			emit(new IfTrue(pair.first, successLabel), false);
+		}
+
+		Temp temp = new Temp();
+		emitMove(temp, new IntConstant(0), false);
+		emit(new Goto(endLabel), false);
+
+		emit(new LabelQuad(successLabel), false);
+		emitMove(temp, new IntConstant(1), false);
+		emit(new LabelQuad(endLabel), false);
+		return new Pair<Addr, TYPE>(temp, INT.getInstance());
+	}
+
+	private Pair<Addr, TYPE> transLogAndExpr(LogAndExpr logAndExpr) {
+		if (logAndExpr.expr.size() == 1)
+			return transInOrExpr(logAndExpr.expr.get(0));
+
+		Label failLabel = new Label(), endLabel = new Label();
+		for (InOrExpr expr : logAndExpr.expr) {
+			Pair<Addr, TYPE> pair = transInOrExpr(expr);
+			emit(new IfFalse(pair.first, failLabel), false);
+		}
+
+		Temp temp = new Temp();
+		emitMove(temp, new IntConstant(1), false);
+		emit(new Goto(endLabel), false);
+
+		emit(new LabelQuad(failLabel), false);
+		emitMove(temp, new IntConstant(0), false);
+		emit(new LabelQuad(endLabel), false);
+		return new Pair<Addr, TYPE>(temp, INT.getInstance());
+	}
+
+	private Pair<Addr, TYPE> transBinExpr(Expression expr) {
+		if (expr instanceof CastExpr)
+			return transCastExpr((CastExpr) expr);
+
+		BinExpr<?> binExpr = (BinExpr<?>) expr;
+		if (binExpr.expr.size() == 1)
+			return transBinExpr((Expression) binExpr.expr.get(0));
+
+		Temp old = loadToTemp(
+				transBinExpr((Expression) binExpr.expr.get(0)).first, false);
+
+		BinOp nullOp = null;
+		if (binExpr.op == null) {
+			if (binExpr instanceof InOrExpr)
+				nullOp = BinOp.OR;
+			if (binExpr instanceof ExOrExpr)
+				nullOp = BinOp.XOR;
+			if (binExpr instanceof AndExpr)
+				nullOp = BinOp.AND;
+		}
+
+		for (int i = 1; i < binExpr.expr.size(); i++) {
+			Expression e = (Expression) binExpr.expr.get(i);
+			BinOp op = binExpr.op == null? nullOp : binExpr.op.get(i-1);
+			
+			Pair<Addr, TYPE> pair = transBinExpr(e);
+			if (old == null) {
+				old = loadToTemp(pair.first, false);
+				continue;
+			}
+
+			Temp temp = new Temp();
+			emitBinop(temp, old, pair.first, op, false);
+			old = temp;
+		}
+		return new Pair<Addr, TYPE>(old, INT.getInstance());
 
 	}
 
-	private Addr transConstExpr(ConstExpr constExpr) {
+	private Pair<Addr, TYPE> transInOrExpr(InOrExpr inOrExpr) {
+		if (inOrExpr.expr.size() == 1)
+			return transExOrExpr(inOrExpr.expr.get(0));
+
+		Temp old = null;
+		for (ExOrExpr expr : inOrExpr.expr) {
+			Pair<Addr, TYPE> pair = transExOrExpr(expr);
+			if (old == null) {
+				old = loadToTemp(pair.first, false);
+				continue;
+			}
+
+			Temp temp = new Temp();
+			emitBinop(temp, old, pair.first, BinOp.OR, false);
+			old = temp;
+		}
+
+		return new Pair<Addr, TYPE>(old, INT.getInstance());
+	}
+
+	private Pair<Addr, TYPE> transExOrExpr(ExOrExpr exOrExpr) {
+		if (exOrExpr.expr.size() == 1)
+			return transAndExpr(exOrExpr.expr.get(0));
+		Temp old = null;
+
+		for (AndExpr expr : exOrExpr.expr) {
+			Pair<Addr, TYPE> pair = transAndExpr(expr);
+			if (old == null) {
+				old = loadToTemp(pair.first, false);
+				continue;
+			}
+
+			Temp temp = new Temp();
+			emitBinop(temp, old, pair.first, BinOp.XOR, false);
+			old = temp;
+		}
+
+		return new Pair<Addr, TYPE>(old, INT.getInstance());
+	}
+
+	private Pair<Addr, TYPE> transAndExpr(AndExpr andExpr) {
+		if (andExpr.expr.size() == 1)
+			return transEquExpr(andExpr.expr.get(0));
+		Temp old = null;
+
+		for (EquExpr expr : andExpr.expr) {
+			Pair<Addr, TYPE> pair = transEquExpr(expr);
+			if (old == null) {
+				old = loadToTemp(pair.first, false);
+				continue;
+			}
+
+			Temp temp = new Temp();
+			emitBinop(temp, old, pair.first, BinOp.AND, false);
+			old = temp;
+		}
+
+		return new Pair<Addr, TYPE>(old, INT.getInstance());
+	}
+
+	private Pair<Addr, TYPE> transEquExpr(EquExpr equExpr) {
+		if (equExpr.expr.size() == 1)
+			return transRelExpr(equExpr.expr.get(0));
+
+	}
+
+	private Pair<Addr, TYPE> transRelExpr(RelExpr relExpr) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	private Addr transAssExpr(AssExpr assExpr) {
+	private Pair<Addr, TYPE> transUnaryExpr(UnaryExpr unaryExpr) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
+	private Pair<Addr, TYPE> transCastExpr(CastExpr castExpr) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }
