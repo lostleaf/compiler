@@ -39,14 +39,17 @@ import compiler.absyn.NameType;
 import compiler.absyn.Node;
 import compiler.absyn.Parameters;
 import compiler.absyn.PlainDeclaration;
+import compiler.absyn.PostExpr;
 import compiler.absyn.Program;
 import compiler.absyn.RecordType;
 import compiler.absyn.ReturnStmt;
 import compiler.absyn.SelStmt;
 import compiler.absyn.Stmt;
 import compiler.absyn.StructUnion;
+import compiler.absyn.TypeName;
 import compiler.absyn.TypeSpecifier;
 import compiler.absyn.UnaryExpr;
+import compiler.absyn.UnaryOp;
 import compiler.absyn.VoidType;
 import compiler.builder.FunctionBuilder;
 import compiler.env.Env;
@@ -99,7 +102,7 @@ public class Translate {
 	}
 
 	// =====================================
-	// builder methods
+	// emit methods
 
 	private void emitMove(Addr target, Addr source) {
 		if (target instanceof Reference && source instanceof Reference)
@@ -115,10 +118,6 @@ public class Translate {
 			addr2 = loadToTemp((Reference) addr2);
 
 		emit(new Binop(target, addr1, addr2, op));
-	}
-
-	private void emitCall(Temp target, Addr source, List<Temp> params) {
-		emit(new Call(target, source, params));
 	}
 
 	private void emitLabel(Label label) {
@@ -153,6 +152,7 @@ public class Translate {
 		Label startLabel = new Label();
 		emit(new LabelQuad(startLabel));
 
+		// copy with a loop
 		Temp temp = new Temp();
 		emitMove(new Reference(rt, os), new Reference(lt, os));
 		emitBinop(os, os, new IntConstant(4), BinOp.ADD);
@@ -186,7 +186,7 @@ public class Translate {
 		return temp;
 	}
 
-	private void copyStruct(Temp target, AddrList source, STRUCT type) {
+	private void initStruct(Temp target, AddrList source, STRUCT type) {
 
 		// XXX might be wrong for char
 		Temp ptr = loadToTemp(target);
@@ -194,10 +194,10 @@ public class Translate {
 			RecordField rf = type.fields.get(i);
 			Addr addr = source.addrs.get(i);
 			if (rf.type instanceof STRUCT)
-				copyStruct(ptr, (AddrList) addr, (STRUCT) rf.type);
+				initStruct(ptr, (AddrList) addr, (STRUCT) rf.type);
 			else {
 				if (rf.type instanceof ARRAY)
-					copyArray(ptr, (AddrList) addr, (ARRAY) rf.type);
+					initArray(ptr, (AddrList) addr, (ARRAY) rf.type);
 				else
 					emitMove(new Reference(ptr), addr);
 			}
@@ -205,16 +205,16 @@ public class Translate {
 		}
 	}
 
-	private void copyArray(Temp target, AddrList source, ARRAY type) {
+	private void initArray(Temp target, AddrList source, ARRAY type) {
 		Temp ptr = loadToTemp(target);
 		TYPE eleType = type.elementType;
 		for (int i = 0; i < source.addrs.size(); i++) {
 			Addr addr = source.addrs.get(i);
 			if (eleType instanceof STRUCT)
-				copyStruct(ptr, (AddrList) addr, (STRUCT) eleType);
+				initStruct(ptr, (AddrList) addr, (STRUCT) eleType);
 			else {
 				if (eleType instanceof ARRAY)
-					copyArray(ptr, (AddrList) addr, (ARRAY) eleType);
+					initArray(ptr, (AddrList) addr, (ARRAY) eleType);
 				else
 					emitMove(new Reference(ptr), addr);
 			}
@@ -346,10 +346,10 @@ public class Translate {
 		Addr addr = transInitializer(initd.initializer, pair.first);
 
 		if (pair.first instanceof ARRAY)
-			copyArray(temp, (AddrList) addr, (ARRAY) pair.first);
+			initArray(temp, (AddrList) addr, (ARRAY) pair.first);
 		else {
 			if (pair.first instanceof STRUCT)
-				copyStruct(temp, (AddrList) addr, (STRUCT) pair.first);
+				initStruct(temp, (AddrList) addr, (STRUCT) pair.first);
 			else
 				emitMove(temp, addr);
 		}
@@ -651,31 +651,84 @@ public class Translate {
 	}
 
 	private Pair<Addr, TYPE> transAddExpr(AddExpr addExpr) {
-		Pair<Addr, TYPE> old = transBinExpr(addExpr.expr.get(0));
-		// if (addExpr.expr.size() == 1)
-		// return pair;
+		Pair<Addr, TYPE> p = transBinExpr(addExpr.expr.get(0));
+		Temp old = loadToTemp(p.first);
+		TYPE type = p.second;
 
 		for (int i = 1; i < addExpr.expr.size(); i++) {
 			BinOp op = addExpr.op.get(i - 1);
-			Pair<Addr, TYPE> pair = transBinExpr(addExpr.expr.get(i)); 
+			Pair<Addr, TYPE> pair = transBinExpr(addExpr.expr.get(i));
+			Addr other = null;
 
-			if (old.second instanceof POINTER && op == BinOp.ADD) {
+			if (type instanceof POINTER && op == BinOp.ADD) {
 				Temp offset = new Temp();
-				emitBinop(offset, old.second.size, pair.first,BinOp.MUL);
-				
+				emitBinop(offset, type.size, pair.first, BinOp.MUL);
+				other = offset;
+			} else {
+				other = pair.first;
+				type = INT.getInstance();
 			}
+
+			Temp temp = new Temp();
+			emitBinop(temp, old, other, BinOp.ADD);
+			old = temp;
 		}
 
-		return old;
-	}
-
-	private Pair<Addr, TYPE> transUnaryExpr(UnaryExpr unaryExpr) {
-		// TODO Auto-generated method stub
-		return null;
+		return new Pair<Addr, TYPE>(old, type);
 	}
 
 	private Pair<Addr, TYPE> transCastExpr(CastExpr castExpr) {
+		if (castExpr.expression instanceof UnaryExpr)
+			return transUnaryExpr((UnaryExpr) castExpr.expression);
+
+		if (castExpr.expression instanceof CastExpr)
+			return new Pair<Addr, TYPE>(
+					transCastExpr((CastExpr) castExpr.expression).first,
+					transTypeName(castExpr.typeName));
+		return null;
+	}
+
+	private TYPE transTypeName(TypeName typeName) {
+		TYPE t = transTypeSpecifier(typeName.typeSpecifier);
+		for (int i = 0; i < typeName.starCount; i++)
+			t = new POINTER(t);
+		return t;
+	}
+
+	private Pair<Addr, TYPE> transUnaryExpr(UnaryExpr unaryExpr) {
+		Temp temp = new Temp();
+		int et = unaryExpr.exprType;
+		if (et == UnaryExpr.POSTEXP)
+			return transPostExpr((PostExpr) unaryExpr.expr);
+
+		if (et == UnaryExpr.PREDEC || et == UnaryExpr.PREINC) {
+			Pair<Addr, TYPE> pair = transUnaryExpr((UnaryExpr) unaryExpr.expr);
+			BinOp op = et == UnaryExpr.PREDEC ? BinOp.SUB : BinOp.ADD;
+
+			emitBinop(temp, pair.first, new IntConstant(1), op);
+			return new Pair<Addr, TYPE>(temp, pair.second);
+		}
+
+		if (et == UnaryExpr.SIZEUEXP || et == UnaryExpr.SIZETYNAME) {
+			TYPE type = et == UnaryExpr.SIZETYNAME ? transTypeName((TypeName) unaryExpr.expr)
+					: transUnaryExpr((UnaryExpr) unaryExpr.expr).second;
+			emitMove(temp, type.size);
+			return new Pair<Addr, TYPE>(temp, INT.getInstance());
+		}
+
+		if (et == UnaryExpr.UNARYOP)
+			return transUnaryExpr(unaryExpr.op, (CastExpr) unaryExpr.expr);
+		return null;
+	}
+
+	private Pair<Addr, TYPE> transUnaryExpr(UnaryOp op, CastExpr castExpr) {
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+	private Pair<Addr, TYPE> transPostExpr(PostExpr expr) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }
