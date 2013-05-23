@@ -260,7 +260,7 @@ public class Semantic {
 					for (Pair<TYPE, Symbol> p : pairs) {
 						if (record.hasField(p.second))
 							error("duplicate field");
-						record.addField(p.first, p.second);
+						record.addField(p.first, p.second, null);
 					}
 				}
 				return record;
@@ -792,7 +792,7 @@ public class Semantic {
 	}
 
 	private Pair<TYPE, Boolean> checkPriExpr(PriExpr priExpr) {
-		Expression e = priExpr.exp;
+		Expression e = priExpr.expr;
 		if (e instanceof Id) {
 			TYPE t = env.getByIdenName(((Id) e).symbol);
 			if (t == null) {

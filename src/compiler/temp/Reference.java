@@ -5,7 +5,7 @@ public class Reference implements Addr {
 	public Addr offset;
 
 	public Reference(Temp base) {
-		this(base, null);
+		this(base, new IntConstant(0));
 	}
 
 	public Reference(Temp temp, Addr addr) {

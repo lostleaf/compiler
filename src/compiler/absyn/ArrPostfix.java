@@ -1,9 +1,9 @@
 package compiler.absyn;
 
 public class ArrPostfix extends Postfix {
-	public Expression expression;
+	public Expr expression;
 
-	public ArrPostfix(Expression e) {
+	public ArrPostfix(Expr e) {
 		this.expression = e;
 	}
 }

@@ -6,7 +6,10 @@ public interface Config {
 	// MODASSIGN, ADDASSIGN, SUBASSIGN, LSHASSIGN, RSHASSIGN,
 	// ANDASSIGN, XORASSIGN, ORASSIGN
 
-	public static String opStr[] = { "+", "-", "*", "/", "%", "<<", ">>", "<",
-			"<=", ">", ">=", "==", "!=", "=", "*=", "/=", "%=", "+=", "-=",
-			"<<=", ">>=", "+=", "^=", "|=" };;
+	public static String bOpStr[] = { "+", "-", "*", "/", "%", "<<", ">>",
+			"<", "<=", ">", ">=", "==", "!=", "=", "*=", "/=", "%=", "+=",
+			"-=", "<<=", ">>=", "+=", "^=", "|=" };
+
+	// AND,STAR,PLUS,MINUS,TILDE,NOT
+	public static String uOpStr[] = { "&", "*", "+", "-", "~", "!" };
 }

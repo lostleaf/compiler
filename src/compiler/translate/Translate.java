@@ -6,14 +6,17 @@ import java.util.List;
 import compiler.absyn.AddExpr;
 import compiler.absyn.AndExpr;
 import compiler.absyn.ArrDeclarator;
+import compiler.absyn.ArrPostfix;
 import compiler.absyn.AssExpr;
 import compiler.absyn.BinExpr;
 import compiler.absyn.BinOp;
 import compiler.absyn.BreakStmt;
 import compiler.absyn.CastExpr;
+import compiler.absyn.CharConst;
 import compiler.absyn.CharType;
 import compiler.absyn.CompStmt;
 import compiler.absyn.ConstExpr;
+import compiler.absyn.Constant;
 import compiler.absyn.ContinueStmt;
 import compiler.absyn.Declaration;
 import compiler.absyn.Declarator;
@@ -24,12 +27,14 @@ import compiler.absyn.ExprStmt;
 import compiler.absyn.Expression;
 import compiler.absyn.ForStmt;
 import compiler.absyn.FunDeclarator;
+import compiler.absyn.FunPostfix;
 import compiler.absyn.FunctionDefinition;
 import compiler.absyn.Id;
 import compiler.absyn.InOrExpr;
 import compiler.absyn.InitDeclarator;
 import compiler.absyn.InitDeclarators;
 import compiler.absyn.Initializer;
+import compiler.absyn.IntConst;
 import compiler.absyn.IntType;
 import compiler.absyn.IterStmt;
 import compiler.absyn.JumpStmt;
@@ -40,16 +45,23 @@ import compiler.absyn.Node;
 import compiler.absyn.Parameters;
 import compiler.absyn.PlainDeclaration;
 import compiler.absyn.PostExpr;
+import compiler.absyn.Postfix;
+import compiler.absyn.PriExpr;
 import compiler.absyn.Program;
+import compiler.absyn.PtrAttrPostfix;
 import compiler.absyn.RecordType;
 import compiler.absyn.ReturnStmt;
 import compiler.absyn.SelStmt;
+import compiler.absyn.SelfDecPostfix;
+import compiler.absyn.SelfIncPostfix;
 import compiler.absyn.Stmt;
+import compiler.absyn.StringExpr;
 import compiler.absyn.StructUnion;
 import compiler.absyn.TypeName;
 import compiler.absyn.TypeSpecifier;
 import compiler.absyn.UnaryExpr;
 import compiler.absyn.UnaryOp;
+import compiler.absyn.ValAttrPostfix;
 import compiler.absyn.VoidType;
 import compiler.builder.FunctionBuilder;
 import compiler.env.Env;
@@ -64,12 +76,14 @@ import compiler.quad.Leave;
 import compiler.quad.Move;
 import compiler.quad.Quad;
 import compiler.quad.Return;
+import compiler.quad.Unaryop;
 import compiler.symbol.Symbol;
 import compiler.temp.Addr;
 import compiler.temp.AddrList;
 import compiler.temp.IntConstant;
 import compiler.temp.Label;
 import compiler.temp.Reference;
+import compiler.temp.StrConstant;
 import compiler.temp.Temp;
 import compiler.type.ARRAY;
 import compiler.type.CHAR;
@@ -144,6 +158,12 @@ public class Translate {
 		return temp;
 	}
 
+	private Temp loadToTemp(Addr r) {
+		Temp temp = new Temp();
+		emit(new Move(temp, r));
+		return temp;
+	}
+
 	private void copyStruct(STRUCT type, Addr l, Addr r) {
 
 		Temp lt = loadRefToTemp(l), rt = loadRefToTemp(r);
@@ -158,12 +178,6 @@ public class Translate {
 		emitBinop(os, os, new IntConstant(4), BinOp.ADD);
 		emitBinop(temp, os, type.size, BinOp.LESS);
 		emit(new IfTrue(temp, startLabel));
-	}
-
-	private Temp loadToTemp(Addr r) {
-		Temp temp = new Temp();
-		emit(new Move(temp, r));
-		return temp;
 	}
 
 	private Temp allocate(Addr totalSize) {
@@ -394,14 +408,15 @@ public class Translate {
 					symbol) : new UNION(symbol);
 			env.putType(record, symbol);
 
-			Temp size = new Temp();
+			Temp size = loadToTemp(new IntConstant(0));
 			for (Pair<TypeSpecifier, Declarators> pair : rType.pairs) {
 				TYPE type = transTypeSpecifier(pair.first);
 				List<Pair<TYPE, Symbol>> pairs = transDeclarators(pair.second,
 						type);
 
 				for (Pair<TYPE, Symbol> p : pairs) {
-					record.addField(p.first, p.second);
+					Temp t = loadToTemp(size);
+					record.addField(p.first, p.second, t);
 					emitBinop(size, size, p.first.size, BinOp.ADD);
 				}
 			}
@@ -722,13 +737,146 @@ public class Translate {
 	}
 
 	private Pair<Addr, TYPE> transUnaryExpr(UnaryOp op, CastExpr castExpr) {
-		// TODO Auto-generated method stub
-		return null;
+		Pair<Addr, TYPE> pair = transCastExpr(castExpr);
+		Temp ret = new Temp();
+		TYPE type = null;
+
+		if (op == UnaryOp.AND) {
+			if (pair.second instanceof ARRAY || pair.second instanceof STRUCT)
+				emitMove(ret, pair.first);
+			else if (pair.first instanceof Reference) {
+				Reference r = (Reference) pair.first;
+				emitBinop(ret, r.base, r.offset, BinOp.ADD);
+			} else
+				System.err.println("error when get address");
+			type = new POINTER(pair.second);
+		}
+
+		if (op == UnaryOp.PLUS) {
+			emitMove(ret, pair.first);
+			type = pair.second;
+		}
+
+		if (op == UnaryOp.MINUS || op == UnaryOp.NOT || op == UnaryOp.TILDE) {
+			Temp temp = loadToTemp(pair.first);
+			emit(new Unaryop(ret, op, temp));
+			type = pair.second;
+		}
+
+		if (op == UnaryOp.STAR) {
+			if (pair.first instanceof Temp) {
+				Temp temp = loadToTemp(pair.first);
+				type = ((POINTER) pair.second).elementType;
+				return new Pair<Addr, TYPE>(new Reference(temp), type);
+			} else
+				System.err.println("unable to handle get value"
+						+ pair.first.getClass().toString());
+		}
+
+		return new Pair<Addr, TYPE>(ret, type);
 	}
 
 	private Pair<Addr, TYPE> transPostExpr(PostExpr expr) {
-		// TODO Auto-generated method stub
+		Pair<Addr, TYPE> t = transPriExpr(expr.priExpr);
+		return transPostfixs(t, expr.postfix);
+	}
+
+	private Pair<Addr, TYPE> transPriExpr(PriExpr priExpr) {
+		Expression e = priExpr.expr;
+
+		if (e instanceof Id) {
+			TYPE t = env.getByIdenName(((Id) e).symbol);
+			Addr a = env.getAddr(((Id) e).symbol);
+			return new Pair<Addr, TYPE>(a, t);
+		}
+		// XXX char and string implement may cause problem
+		if (e instanceof Constant) {
+			if (e instanceof IntConst)
+				return new Pair<Addr, TYPE>(new IntConstant(
+						((IntConst) e).value), INT.getInstance());
+			if (e instanceof CharConst)
+				return new Pair<Addr, TYPE>(new StrConstant(
+						((CharConst) e).value), CHAR.getInstance());
+		}
+
+		if (e instanceof StringExpr) {
+			return new Pair<Addr, TYPE>(
+					new StrConstant(((StringExpr) e).value),
+					new ARRAY(CHAR.getInstance(), ((StringExpr) e).value
+							.length()));
+		}
+
+		if (e instanceof Expr) {
+			return transExpr((Expr) e);
+		}
 		return null;
 	}
 
+	private Pair<Addr, TYPE> transPostfixs(Pair<Addr, TYPE> t,
+			List<Postfix> postfix) {
+		for (Postfix p : postfix) {
+			if (p instanceof ArrPostfix) {
+				Pair<Addr, TYPE> pair = transExpr(((ArrPostfix) p).expression);
+
+				Temp temp = new Temp();
+				emitBinop(temp, t.second.size, pair.first, BinOp.MUL);
+
+				t.first = temp;
+				t.second = ((POINTER) t.second).elementType;
+			}
+
+			if (p instanceof FunPostfix) {
+				FunPostfix fun = (FunPostfix) p;
+				List<Temp> list = new ArrayList<Temp>();
+
+				if (fun.arguments != null && fun.arguments.assExpr != null)
+					for (AssExpr a : fun.arguments.assExpr) {
+						Pair<Addr, TYPE> pair = transAssExpr(a);
+						Temp temp = pair.first instanceof Temp ? (Temp) pair.first
+								: loadToTemp(pair.first);
+						list.add(temp);
+					}
+
+				Temp temp = new Temp();
+				emit(new Call(temp, t.first, list));
+
+				t.first = temp;
+				t.second = ((FUNCTION) t.second).returnType;
+			}
+
+			if (p instanceof ValAttrPostfix) {
+				Symbol s = ((ValAttrPostfix) p).identifier.symbol;
+				RecordField field = ((RECORD) t.second).findField(s);
+				Temp temp = loadRefToTemp(t.first);
+
+				Temp ptr = new Temp();
+				emitBinop(ptr, temp, field.offset, BinOp.ADD);
+
+				t.first = new Reference(ptr);
+				t.second = field.type;
+			}
+
+			if (p instanceof PtrAttrPostfix) {
+				RECORD r = (RECORD) ((POINTER) t.second).elementType;
+				Symbol s = ((PtrAttrPostfix) p).identifier.symbol;
+				RecordField field = r.findField(s);
+				Temp temp = loadRefToTemp(t.first);
+
+				Temp ptr = new Temp();
+				emitBinop(ptr, temp, field.offset, BinOp.ADD);
+
+				t.first = new Reference(ptr);
+				t.second = field.type;
+			}
+
+			if (p instanceof SelfIncPostfix || p instanceof SelfDecPostfix) {
+				BinOp op = p instanceof SelfIncPostfix ? BinOp.ADD : BinOp.SUB;
+				Temp temp = new Temp();
+				emitMove(temp, t.first);
+				emitBinop(temp, temp, new IntConstant(1), op);
+				t.first = temp;
+			}
+		}
+		return t;
+	}
 }

@@ -20,7 +20,7 @@ public class Binop extends Quad implements Config {
 
 	public String toString() {
 		return target.toString() + " = " + addr1.toString() + " "
-				+ opStr[op.ordinal()] + " " + addr2.toString();
+				+ bOpStr[op.ordinal()] + " " + addr2.toString();
 	}
 
 }
