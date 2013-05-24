@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import compiler.symbol.Symbol;
+import compiler.temp.Addr;
 
 public class RECORD extends TYPE {
 
@@ -11,10 +12,12 @@ public class RECORD extends TYPE {
 
 		public TYPE type;
 		public Symbol name;
+		public Addr offset;
 
-		public RecordField(TYPE type, Symbol name) {
+		public RecordField(TYPE type, Symbol name, Addr offset) {
 			this.type = type;
 			this.name = name;
+			this.offset = offset;
 		}
 
 	}
@@ -34,8 +37,15 @@ public class RECORD extends TYPE {
 		return false;
 	}
 
-	public void addField(TYPE type, Symbol name) {
-		fields.add(new RecordField(type, name));
+	public void addField(TYPE type, Symbol name, Addr offset) {
+		fields.add(new RecordField(type, name, offset));
+	}
+
+	public RecordField findField(Symbol name) {
+		for (RecordField rf : fields)
+			if (name.equals(rf.name))
+				return rf;
+		return null;
 	}
 
 	@Override

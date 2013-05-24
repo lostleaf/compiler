@@ -2,6 +2,7 @@ package compiler.env;
 
 import compiler.symbol.Symbol;
 import compiler.symbol.Table;
+import compiler.temp.Addr;
 import compiler.type.CHAR;
 import compiler.type.FUNCTION;
 import compiler.type.INT;
@@ -14,11 +15,18 @@ public final class Env {
 	public Table typeEnv = null;
 	public Table funcEnv = null;
 	public Table idenEnv = null;
+	public Table addrEnv = null;
 
 	public Env() {
 		initTypeEnv();
 		initFuncEnv();
 		initIdenEnv();
+		initAddrEnv();
+	}
+
+	private void initAddrEnv() {
+		addrEnv = new Table();
+		//TODO add the the system functions 
 	}
 
 	private void initIdenEnv() {
@@ -52,12 +60,14 @@ public final class Env {
 		funcEnv.beginScope();
 		typeEnv.beginScope();
 		idenEnv.beginScope();
+		addrEnv.beginScope();
 	}
 
 	public void endScope() {
 		funcEnv.endScope();
 		typeEnv.endScope();
 		idenEnv.endScope();
+		addrEnv.endScope();
 	}
 
 	public void putIden(TYPE type, Symbol name) {
@@ -70,6 +80,10 @@ public final class Env {
 
 	public void putFunc(FUNCTION f, Symbol name) {
 		funcEnv.put(name, f);
+	}
+
+	public void putAddr(Symbol name, Addr addr) {
+		addrEnv.put(name, addr);
 	}
 
 	public TYPE getByTypedefName(Symbol name) {
@@ -99,4 +113,12 @@ public final class Env {
 			return null;
 		return (TYPE) obj;
 	}
+
+	public Addr getAddr(Symbol name) {
+		Object obj = addrEnv.get(name);
+		if (obj == null)
+			return null;
+		return (Addr) obj;
+	}
+
 }

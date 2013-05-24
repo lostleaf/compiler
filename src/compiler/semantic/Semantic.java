@@ -68,9 +68,9 @@ import compiler.absyn.UnaryOp;
 import compiler.absyn.ValAttrPostfix;
 import compiler.absyn.VoidType;
 import compiler.absyn.WhileStmt;
+import compiler.builder.ArrayBuilder;
+import compiler.builder.FunctionBuilder;
 import compiler.env.Env;
-import compiler.semantic.builder.ArrayBuilder;
-import compiler.semantic.builder.FunctionBuilder;
 import compiler.symbol.Symbol;
 import compiler.type.ARRAY;
 import compiler.type.CHAR;
@@ -260,7 +260,7 @@ public class Semantic {
 					for (Pair<TYPE, Symbol> p : pairs) {
 						if (record.hasField(p.second))
 							error("duplicate field");
-						record.addField(p.first, p.second);
+						record.addField(p.first, p.second, null);
 					}
 				}
 				return record;
@@ -792,7 +792,7 @@ public class Semantic {
 	}
 
 	private Pair<TYPE, Boolean> checkPriExpr(PriExpr priExpr) {
-		Expression e = priExpr.exp;
+		Expression e = priExpr.expr;
 		if (e instanceof Id) {
 			TYPE t = env.getByIdenName(((Id) e).symbol);
 			if (t == null) {
@@ -827,7 +827,6 @@ public class Semantic {
 	}
 
 	private boolean canCast(TYPE fromType, TYPE toType) {
-		// TODO Add more information of cast
 		if (fromType == null)
 			return toType == null;
 		if (!fromType.equals(toType)

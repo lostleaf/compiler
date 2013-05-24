@@ -1,5 +1,7 @@
 package compiler.type;
 
+import compiler.temp.IntConstant;
+
 public final class INT extends TYPE {
 
 	private static INT instance = null;
@@ -12,6 +14,7 @@ public final class INT extends TYPE {
 	}
 
 	private INT() {
+		size = new IntConstant(4);
 	}
 
 	@Override
