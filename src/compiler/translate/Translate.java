@@ -100,8 +100,8 @@ import compiler.util.Pair;
 
 public class Translate {
 	private Env env = null;
-	private List<Quad> quads = new ArrayList<Quad>();
-	private List<Quad> topLevelQuads = new ArrayList<Quad>();
+	public List<Quad> quads = new ArrayList<Quad>();
+	public List<Quad> topLevelQuads = new ArrayList<Quad>();
 	private boolean isTopLevel = true;
 
 	public Translate() {

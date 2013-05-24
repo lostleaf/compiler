@@ -1,0 +1,36 @@
+0 32
+toplevel:
+-------
+
+class compiler.quad.LabelQuad L0:
+class compiler.quad.Enter Enter L0
+class compiler.quad.Move T6 = 10
+class compiler.quad.Move T0 = T6
+class compiler.quad.Move T9 = 10
+class compiler.quad.Binop T11 = T9 * 3
+class compiler.quad.Move T12 = T11
+class compiler.quad.Move T1 = T12
+class compiler.quad.Move T15 = 10
+class compiler.quad.Binop T17 = T15 + 10
+class compiler.quad.Move T2 = T17
+class compiler.quad.Move T20 = T0
+class compiler.quad.Move T3 = T20
+class compiler.quad.Move T22 = T1
+class compiler.quad.Move T23 = T22
+class compiler.quad.Move T25 = T3
+class compiler.quad.Binop T26 = T23 != T25
+class compiler.quad.Move T27 = T26
+class compiler.quad.IfFalse IfFalse T27 Goto L1
+class compiler.quad.Move T30 = T1
+class compiler.quad.Move T3 = T30
+class compiler.quad.LabelQuad L1:
+class compiler.quad.Move T32 = T2
+class compiler.quad.Move T33 = T32
+class compiler.quad.Move T35 = T3
+class compiler.quad.Binop T36 = T33 != T35
+class compiler.quad.Move T37 = T36
+class compiler.quad.IfFalse IfFalse T37 Goto L2
+class compiler.quad.Move T40 = T2
+class compiler.quad.Move T3 = T40
+class compiler.quad.LabelQuad L2:
+class compiler.quad.Leave leave L0

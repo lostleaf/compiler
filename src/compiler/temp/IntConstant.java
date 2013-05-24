@@ -1,7 +1,7 @@
 package compiler.temp;
 
 public class IntConstant extends Const {
-	int value;
+	public int value;
 
 	public IntConstant(int v) {
 		value = v;
