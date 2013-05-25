@@ -5,19 +5,16 @@ import compiler.translate.Level;
 
 public class Temp implements Addr {
 	public static int total = 0;
-	public static Temp sp = new Temp(), gp = new Temp(), v1 = new Temp();
+	public static Temp sp = new Temp(null, 0), gp = new Temp(null, 0),
+			v1 = new Temp(null, 0);
 
-	public int index;
+	public int num, index;
 	public Level level;
 
-	public Temp() {
-		index = total++;
-	}
-
 	public Temp(Level l, int i) {
-		index = total++;
-		level = l;
-		index = i;
+		this.num = total++;
+		this.level = l;
+		this.index = i;
 	}
 
 	@Override
@@ -28,28 +25,24 @@ public class Temp implements Addr {
 			return "gp";
 		if (this.equals(v1))
 			return "v1";
-		return "T" + index;
+		return "T" + num;
 	}
 
 	@Override
 	public boolean equals(Object other) {
-		if (other instanceof Temp) {
-			return index == ((Temp) other).index;
-		}
-		return false;
+		return other instanceof Temp ? num == ((Temp) other).num : false;
 	}
 
 	@Override
 	public int hashCode() {
-		return index;
+		return num;
 	}
 
 	private LiveInterval interval = null;
 
 	public void expandInterval(int qcount) {
-		if (interval == null) {
+		if (interval == null)
 			interval = new LiveInterval(this, qcount);
-		}
 		interval.insert(qcount);
 	}
 

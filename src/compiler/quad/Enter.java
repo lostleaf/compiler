@@ -1,7 +1,6 @@
 package compiler.quad;
 
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -19,10 +18,10 @@ public class Enter extends Quad {
 	Level level = null;
 	List<Reference> params = null;
 
-	public Enter(Label l, Level v, LinkedList<Reference> p) {
-		label = l;
-		level = v;
-		params = p;
+	public Enter(Label label, Level level, List<Reference> params) {
+		this.label = label;
+		this.level = level;
+		this.params = params;
 	}
 
 	public String toString() {

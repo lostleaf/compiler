@@ -8,7 +8,7 @@ import java.util.Set;
 import compiler.analysis.Expression;
 import compiler.assem.Assem;
 import compiler.assem.AssemList;
-import compiler.temp.Const;
+import compiler.temp.IntConstant;
 import compiler.temp.Label;
 import compiler.temp.Temp;
 import compiler.util.Config;
@@ -69,7 +69,7 @@ public abstract class Quad implements Config {
 	public void replaceUseOf(Temp old, Temp t) {
 	}
 
-	public void replaceUseOf(Temp old, Const t) {
+	public void replaceUseOf(Temp old, IntConstant t) {
 	}
 
 	public Quad promotion() {

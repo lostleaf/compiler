@@ -8,7 +8,7 @@ import compiler.analysis.Expression;
 import compiler.assem.Assem;
 import compiler.assem.AssemList;
 import compiler.temp.Addr;
-import compiler.temp.Const;
+import compiler.temp.IntConstant;
 import compiler.temp.Temp;
 import compiler.util.Config;
 
@@ -88,7 +88,7 @@ public class Unaryop extends Quad implements Config {
 	}
 
 	@Override
-	public void replaceUseOf(Temp old, Const t) {
+	public void replaceUseOf(Temp old, IntConstant t) {
 		if (left.equals(old)) {
 			left = t;
 		}

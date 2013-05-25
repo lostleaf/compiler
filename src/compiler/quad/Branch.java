@@ -8,7 +8,6 @@ import compiler.analysis.Expression;
 import compiler.assem.Assem;
 import compiler.assem.AssemList;
 import compiler.temp.Addr;
-import compiler.temp.Const;
 import compiler.temp.IntConstant;
 import compiler.temp.Label;
 import compiler.temp.Temp;

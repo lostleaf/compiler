@@ -1,6 +1,6 @@
 package compiler.temp;
 
-public class IntConstant extends Const {
+public class IntConstant implements Addr{
 	public int value;
 
 	public IntConstant(int v) {

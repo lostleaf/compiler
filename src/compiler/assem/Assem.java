@@ -108,7 +108,7 @@ public class Assem implements Config {
 				// lw $r, wordSize*t.home.depth($gp)
 				// lw $r, wordSize*t.index($r)
 				//before.append("\t\t\tlw $" + regNames[r] + ", " + wordSize * t.home.depth + "($gp)\t# load display for spilling\n");
-				before.append("\t\t\tlw $" + regNames[r] + ", " + wordSize * t.index + "($" + regNames[r] + ")\t# load for spilling\n");
+				before.append("\t\t\tlw $" + regNames[r] + ", " + wordSize * t.num + "($" + regNames[r] + ")\t# load for spilling\n");
 
 			}
 		}
@@ -131,7 +131,7 @@ public class Assem implements Config {
 				// lw $d, wordSize*t.home.depth($gp)
 				// sw $r, wordSize*t.index($d)
 				//after.append("\n\t\t\tlw $" + regNames[d] + ", " + wordSize * t.home.depth + "($gp)\t# load display for spilling");
-				after.append("\n\t\t\tsw $" + regNames[r] + ", " + wordSize * t.index + "($" + regNames[d] + ")\t# write back for spilling");
+				after.append("\n\t\t\tsw $" + regNames[r] + ", " + wordSize * t.num + "($" + regNames[d] + ")\t# write back for spilling");
 			}
 		}
 		
