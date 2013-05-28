@@ -17,6 +17,16 @@ public class Temp implements Addr {
 		this.index = i;
 	}
 
+	public Object getName() {
+		if (this.equals(sp))
+			return "$sp";
+		if (this.equals(gp))
+			return "$gp";
+		if (this.equals(v1))
+			return "$v1";
+		return this;
+	}
+
 	@Override
 	public String toString() {
 		if (this.equals(sp))

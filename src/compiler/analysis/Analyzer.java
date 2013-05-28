@@ -11,6 +11,7 @@ import java.util.Set;
 import compiler.absyn.BinOp;
 import compiler.quad.Binop;
 import compiler.quad.Branch;
+import compiler.quad.Enter;
 import compiler.quad.Goto;
 import compiler.quad.IfFalse;
 import compiler.quad.Leave;
@@ -83,7 +84,8 @@ public class Analyzer implements Config {
 
 		// gives the basic block `ENTRY'
 		quads.get(0).setLeader(); // function label
-		quads.get(2).setLeader(); // instruction after `enter'
+		if (quads.size() > 1 && quads.get(1) instanceof Enter)
+			quads.get(2).setLeader(); // instruction after `enter'
 
 		// gives the basic block `EXIT'
 		for (Quad q : quads) {
@@ -100,6 +102,8 @@ public class Analyzer implements Config {
 				q.addSuccessor(t);
 				quads.get(i + 1).setLeader();
 			}
+			if (q instanceof Leave)
+				quads.get(i + 1).setLeader();
 		}
 	}
 
@@ -152,7 +156,7 @@ public class Analyzer implements Config {
 	public void findLiveness(LinkedList<BasicBlock> blocks) {
 		LinkedList<BasicBlock> bb = new LinkedList<BasicBlock>();
 		Iterator<BasicBlock> iter = blocks.descendingIterator();
-		iter.next(); // skip EXIT (the BasicBlock with `leave LLL')
+		//iter.next(); // skip EXIT (the BasicBlock with `leave LLL')
 		while (iter.hasNext()) {
 			bb.add(iter.next());
 		}

@@ -38,7 +38,7 @@ public class Enter extends Quad {
 	public AssemList gen() {
 		int L = level.frameSize();
 		return L(
-				new Assem("addiu $sp, $sp, -%", L),
+				new Assem("addi $sp, $sp, -%", L),
 				L(new Assem("sw $ra, %($sp)", L - wordSize),
 						L(level.saveRegisters(), loadArguments())));
 	}
@@ -47,11 +47,7 @@ public class Enter extends Quad {
 		AssemList loads = null;
 		int i = 0;
 		while (i < paramRegNum && i < params.size()) {
-			Object x = params.get(i).base;
-			if (Temp.gp.equals(x))
-				x = "$gp";
-			if (Temp.sp.equals(x))
-				x = "$sp";
+			Object x = params.get(i).base.getName();
 			loads = L(loads, L(new Assem("sw $%, %(%)", regNames[paramRegBase
 					+ i], params.get(i).offset, x)));
 			++i;

@@ -13,7 +13,7 @@ import compiler.temp.Temp;
 
 public class CompilationUnit {
 
-	private List<Quad> quads = null;
+	public List<Quad> quads = null;
 	// private Label label = null;
 	public Level level = null;
 

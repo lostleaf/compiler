@@ -2,8 +2,6 @@ package compiler.assem;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.TreeSet;
 
 import compiler.quad.Quad;
 import compiler.regAlloc.RegAlloc;
@@ -11,10 +9,10 @@ import compiler.translate.CompilationUnit;
 
 public class Codegen {
 
-	private LinkedList<Assem> inits = new LinkedList<Assem>();
+	private ArrayList<String> commands = new ArrayList<String>();
 
 	public void gen(Assem assem) {
-		inits.add(assem);
+		commands.add(assem.toString());
 	}
 
 	public void gen(AssemList assems) {
@@ -22,8 +20,6 @@ public class Codegen {
 			gen(p.head);
 		}
 	}
-
-	private ArrayList<String> lines = new ArrayList<String>();
 
 	public void gen(CompilationUnit cu, RegAlloc allocator) {
 		ArrayList<Quad> quads = new ArrayList<Quad>(cu.getQuads());
@@ -37,15 +33,22 @@ public class Codegen {
 			}
 		}
 
+		for (Assem assem : assems)
+			commands.add(assem.toString());
+		
 		// RemoveTopLevelDisplay.process(assems);
 		//
 		// for (Assem assem : assems) {
-		// lines.add(StrengthReduction.process(assem).toString(allocator));
-		// }
+		// lines.add(StrengthReduction.process(assem).toString(allocator)); }
+		 
 	}
 
 	public void flush(PrintStream out, boolean opt) {
-		ArrayList<String> insertsMain = new ArrayList<String>();
+		for (String line : commands) {
+			out.println(line);
+		}
+
+		// ArrayList<String> insertsMain = new ArrayList<String>();
 
 		// if (opt) {
 		// ArrayList<String> oldLines = new ArrayList<String>();

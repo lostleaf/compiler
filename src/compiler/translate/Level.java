@@ -23,7 +23,7 @@ public class Level implements Config {
 		return new Temp(this, index++);
 	}
 
-	public Reference get() {
+	public Reference getPtr() {
 		return new Reference(Temp.sp, new IntConstant(size));
 	}
 

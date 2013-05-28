@@ -44,19 +44,8 @@ public class Unaryop extends Quad implements Config {
 
 	@Override
 	public AssemList gen() {
-		Object l = left, d = dest;
-		if (Temp.gp.equals(l))
-			l = "$gp";
-		if (Temp.gp.equals(d))
-			d = "$gp";
-		if (Temp.sp.equals(l))
-			l = "$sp";
-		if (Temp.sp.equals(d))
-			d = "$sp";
-		if (Temp.v1.equals(l))
-			l = "$v1";
-		if (Temp.v1.equals(d))
-			d = "$v1";
+		Object l = left instanceof Temp ? ((Temp)left).getName() : left;
+		Object d = dest instanceof Temp ? ((Temp)dest).getName() : dest;
 
 		if (op == UnaryOp.NOT)
 			return L(new Assem("seq @, %, $zero", d, l));

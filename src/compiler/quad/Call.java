@@ -13,56 +13,57 @@ import compiler.temp.Label;
 import compiler.temp.Temp;
 
 public class Call extends Quad {
-	Temp dst;
-	Addr src;
+	Temp target;
+	Addr source;
 	List<Temp> params;
 
 	public Call(Temp target, Addr source, List<Temp> params) {
-		this.dst = target;
-		this.src = source;
+		this.target = target;
+		this.source = source;
 		this.params = params;
 	}
 
 	public String toString() {
-		String s = params != null ? params.toString() : "";
-		return dst + " = call " + src + " " + s;
+		String s1 = params != null ? params.toString() : "";
+		String s2 = target != null ? target.toString() : "";
+		return s2 + " = call " + source + " " + s1;
 	}
 
 	@Override
 	public Set<Temp> use() {
 		Set<Temp> set = new LinkedHashSet<Temp>();
 		set.addAll(params);
-		if (src instanceof Temp)
-			set.add((Temp) src);
+		if (source instanceof Temp)
+			set.add((Temp) source);
 		return set;
 	}
 
 	@Override
 	public Set<Temp> def() {
 		Set<Temp> set = new LinkedHashSet<Temp>();
-		if (dst != null)
-			set.add(dst);
+		if (target != null)
+			set.add(target);
 		return set;
 	}
 
 	@Override
 	public AssemList gen() {
-		if (dst == null) {
-			if (src instanceof Label)
-				return L(saveArguments(), L(new Assem("jal %", src)));
+		if (target == null) {
+			if (source instanceof Label)
+				return L(saveArguments(), L(new Assem("jal %", source)));
 			else
-				return L(saveArguments(), L(new Assem("jalr %", src)));
+				return L(saveArguments(), L(new Assem("jalr %", source)));
 		} else {
-			if (src instanceof Label)
+			if (source instanceof Label)
 				return L(
 						saveArguments(),
-						L(new Assem("jal %", src), L(new Assem("move @, $v0",
-								dst))));
+						L(new Assem("jal %", source), L(new Assem("move @, $v0",
+								target))));
 			else
 				return L(
 						saveArguments(),
-						L(new Assem("jalr %", src), L(new Assem("move @, $v0",
-								dst))));
+						L(new Assem("jalr %", source), L(new Assem("move @, $v0",
+								target))));
 		}
 	}
 
@@ -105,7 +106,7 @@ public class Call extends Quad {
 			}
 		}
 		params = newParams;
-		if (src.equals(old))
-			src = t;
+		if (source.equals(old))
+			source = t;
 	}
 }

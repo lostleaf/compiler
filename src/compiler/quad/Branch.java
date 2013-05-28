@@ -61,10 +61,9 @@ public class Branch extends Quad {
 	public Set<Temp> use() {
 		Set<Temp> set = new LinkedHashSet<Temp>();
 		if (left instanceof Temp)
-			set.add((Temp)left);
-		if (right instanceof Temp) {
+			set.add((Temp) left);
+		if (right instanceof Temp)
 			set.add((Temp) right);
-		}
 		return set;
 	}
 
@@ -90,8 +89,19 @@ public class Branch extends Quad {
 		if (left.equals(old)) {
 			left = t;
 		}
-		if (right instanceof Temp && right.equals(old)) {
+		if (right.equals(old)) {
 			right = t;
 		}
 	}
+
+	@Override
+	public void replaceUseOf(Temp old, IntConstant t) {
+		if (left.equals(old)) {
+			left = t;
+		}
+		if (right.equals(old)) {
+			right = t;
+		}
+	}
+
 }

@@ -41,20 +41,19 @@ public class TestTranslate {
 		translate.transProgram(program);
 
 		PrintWriter p = new PrintWriter("result.txt");
-		p.println(translate.topLevelQuads.size() + " " + translate.quads.size());
-		p.print("toplevel:");
-		for (Quad q : translate.topLevelQuads)
-			p.println(q.getClass().toString() + " " + q);
+		p.println(translate.cus.size());
+		for (int i = 0; i < translate.cus.size(); i++) {
+			p.println("\n\n" + "cu " + i + "\n");
 
-		p.println("\n-------\n");
-		for (Quad q : translate.quads)
-			p.println(q.getClass().toString() + " " + q);
+			for (Quad q : translate.cus.get(i).quads)
+				p.println(q);
+		}
 		p.close();
 	}
 
 	public static void main(String args[]) {
 		try {
-			doTranslate(new File("example1.c"));
+			doTranslate(new File("queens.c"));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

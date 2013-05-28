@@ -1,20 +1,22 @@
 package compiler.regAlloc;
 
+import compiler.analysis.LiveInterval;
 import compiler.temp.Temp;
 
 public class DefaultMap implements RegAlloc {
 
 	@Override
 	public String map(Temp t) {
-		return t.toString();
+		LiveInterval i = t.getLiveInterval();
+		return "$" + regNames[i.register];
 	}
 	
-	private static DefaultMap singleton = null;
+	private static DefaultMap instance = null;
 
 	public static DefaultMap getSingleton() {
-		if (singleton == null) {
-			singleton = new DefaultMap();
+		if (instance == null) {
+			instance = new DefaultMap();
 		}
-		return singleton;
+		return instance;
 	}
 }

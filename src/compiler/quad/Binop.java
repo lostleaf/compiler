@@ -47,9 +47,12 @@ public class Binop extends Quad implements Config {
 
 	@Override
 	public AssemList gen() {
+		Object l = left instanceof Temp ? ((Temp) left).getName() : left;
+		Object r = right instanceof Temp ? ((Temp) right).getName() : right;
+
 		return L(new Assem("% @, %, %"
 				+ (cmt.length() > 0 ? (" # " + cmt) : ""),
-				bOpAsm[op.ordinal()], target, left, right));
+				bOpAsm[op.ordinal()], target, l, r));
 	}
 
 	public String toExp() {
