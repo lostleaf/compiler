@@ -1,7 +1,6 @@
 int main()
 {
-	int a = 1 , b = 1;
-	if(a && b)
-		printf("a\n");
+	int a = 123;
+	printf("%d\n", a--);
 	return 0;
 }

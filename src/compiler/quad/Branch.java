@@ -23,6 +23,8 @@ public class Branch extends Quad {
 	private Label label;
 
 	public Branch(String cmp, Addr left, Addr right, Label label) {
+		if(cmp == null)
+			System.err.println("fuck");
 		this.cmp = cmp;
 		this.left = left;
 		this.right = right;

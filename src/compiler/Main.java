@@ -1,8 +1,6 @@
 package compiler;
 
 import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
@@ -47,7 +45,7 @@ public class Main implements Config {
 		}
 	}
 
-	static String flname = "gcd-5090379042-jiaxiao.c";
+	static String flname = "maxflow-5100379110-daibo.c";
 	static Program program = null;
 	static Translate translate = null;
 
@@ -102,6 +100,7 @@ public class Main implements Config {
 			u.findBasicBlocks(analyzer);
 			u.findLiveness(analyzer);
 		}
+		// opt =false;
 		if (opt) {
 			// LocalCopyPropagation lcp = new LocalCopyPropagation();
 			// DeadCodeEliminator dce = new DeadCodeEliminator();

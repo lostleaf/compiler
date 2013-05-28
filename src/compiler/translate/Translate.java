@@ -143,7 +143,7 @@ public class Translate implements Config {
 			return addr2;
 
 		if (addr1 instanceof IntConstant && addr2 instanceof IntConstant) {
-//			new Exception().printStackTrace();
+			// new Exception().printStackTrace();
 			return Fucker.fuckBinOp(((IntConstant) addr1).value,
 					((IntConstant) addr2).value, op);
 		}
@@ -228,11 +228,12 @@ public class Translate implements Config {
 	private Reference allocate(Addr size) {
 		Addr mallocAddr = env.getAddr(Symbol.symbol("malloc"));
 		if (isTopLevel) {
-//			if (size instanceof IntConstant) {
-//				int s = ((IntConstant) size).value;
-//				topLevelSize += s;
-//				return new Reference(Temp.gp, new IntConstant(topLevelSize - s));
-//			}
+			if (size instanceof IntConstant && ((IntConstant) size).value <= 4) {
+				Reference ref = new Reference(Temp.gp, new IntConstant(topLevelSize));
+				emitMove(ref,new IntConstant(0));
+				topLevelSize += ((IntConstant) size).value;
+				return ref;
+			}
 
 			Temp res = newTemp();
 			emitCall(res, mallocAddr, size);
@@ -246,7 +247,7 @@ public class Translate implements Config {
 		}
 
 		Reference ref = cu.level.getPtr();
-		if (size instanceof IntConstant) {
+		if (size instanceof IntConstant && ((IntConstant) size).value <= 10000) {
 			cu.level.size += ((IntConstant) size).value;
 			return ref;
 		} else {
@@ -561,11 +562,10 @@ public class Translate implements Config {
 
 		if (stmt instanceof ReturnStmt) {
 			ReturnStmt r = (ReturnStmt) stmt;
-			if (r.expr == null) {
+			if (r.expr != null) {
 				Addr addr = transExpr(r.expr).first;
-				Temp temp = newTemp();
+				Temp temp = loadToTemp(addr);
 				// XXX maybe wrong for structure
-				emitMove(temp, addr);
 				emit(new Return(temp));
 			}
 			emit(new Leave(funcLabel, cu.level));
@@ -692,6 +692,8 @@ public class Translate implements Config {
 		Label failLabel = new Label(), endLabel = new Label();
 		for (InOrExpr expr : logAndExpr.expr) {
 			Pair<Addr, TYPE> pair = transBinExpr(expr);
+			if (pair.first instanceof Reference)
+				pair.first = loadToTemp(pair.first);
 			emit(new IfFalse(pair.first, failLabel));
 		}
 
@@ -972,9 +974,11 @@ public class Translate implements Config {
 
 			if (p instanceof SelfIncPostfix || p instanceof SelfDecPostfix) {
 				BinOp op = p instanceof SelfIncPostfix ? BinOp.ADD : BinOp.SUB;
-				Temp temp = loadToTemp(t.first);
-				emitBinop(temp, temp, new IntConstant(1), op);
+				Temp temp = newTemp();
+				Temp temp1 = loadToTemp(t.first);
+				emitBinop(temp, t.first, new IntConstant(1), op);
 				emitMove(t.first, temp);
+				t.first = temp1;
 			}
 		}
 		return t;

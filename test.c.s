@@ -1,3 +1,65 @@
+########################################
+############### CODE GEN ###############
+########################################
+	.data
+L3:
+	.asciiz "%d\n"
+	.align 2
+	.align 2
+	.globl args
+args:	.space 4
+	.align 2
+	.globl stat
+stat:	.space 4
+	.text
+	.align 2
+	.globl main
+main:
+	la $gp, stat
+	la $v1, args
+	jal L2
+	jal exit
+L2:
+	addi $sp, $sp, -112
+	sw $ra, 108($sp)
+	sw $t5, 56($sp)
+	sw $t4, 52($sp)
+	sw $t3, 48($sp)
+	sw $t2, 44($sp)
+	sw $t1, 40($sp)
+	sw $t0, 36($sp)
+	li $t1, 123
+	sw $t1, 0($sp)
+	la $t2, L3
+	lw $t1, 0($sp)
+	lw $t3, 0($sp)
+	sub $t4, $t3, 1
+	move $t5, $t4
+	sw $t5, 0($sp)
+	move $a0, $t2
+	move $a1, $t1
+	jal L0
+	move $t3, $v0
+	li $t0, 0
+	move $v0, $t0
+	lw $t5, 56($sp)
+	lw $t4, 52($sp)
+	lw $t3, 48($sp)
+	lw $t2, 44($sp)
+	lw $t1, 40($sp)
+	lw $t0, 36($sp)
+	lw $ra, 108($sp)
+	addiu $sp, $sp, 112
+	jr $ra
+	lw $t5, 56($sp)
+	lw $t4, 52($sp)
+	lw $t3, 48($sp)
+	lw $t2, 44($sp)
+	lw $t1, 40($sp)
+	lw $t0, 36($sp)
+	lw $ra, 108($sp)
+	addiu $sp, $sp, 112
+	jr $ra
 
 
 ########################################

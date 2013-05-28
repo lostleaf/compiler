@@ -1,3 +1,176 @@
+########################################
+############### CODE GEN ###############
+########################################
+	.data
+L12:
+	.asciiz "%04d"
+	.align 2
+	.align 2
+	.globl args
+args:	.space 8
+	.align 2
+	.globl stat
+stat:	.space 4
+	.text
+	.align 2
+	.globl main
+main:
+	la $gp, stat
+	la $v1, args
+	jal L2
+	jal exit
+L2:
+	addi $sp, $sp, -440
+	sw $ra, 436($sp)
+	sw $t5, 384($sp)
+	sw $t4, 380($sp)
+	sw $t3, 376($sp)
+	sw $t2, 372($sp)
+	sw $t1, 368($sp)
+	sw $t0, 364($sp)
+	li $t1, 10000
+	sw $t1, 0($sp)
+	li $t2, 0
+	sw $t2, 4($sp)
+	li $t1, 2800
+	sw $t1, 8($sp)
+	li $t2, 0
+	sw $t2, 12($sp)
+	li $t1, 0
+	sw $t1, 16($sp)
+	li $t2, 11204
+	move $a0, $t2
+	jal L1
+	move $t1, $v0
+	move $t3, $t1
+	sw $t3, 20($sp)
+	li $t1, 0
+	sw $t1, 24($sp)
+L3:
+	lw $t1, 4($sp)
+	lw $t2, 8($sp)
+	sub $t3, $t1, $t2
+	move $t4, $t3
+	beqz $t4, L5
+	lw $t1, 4($sp)
+	lw $t2, 4($sp)
+	add $t3, $t2, 1
+	move $t4, $t3
+	sw $t4, 4($sp)
+	li $t2, 4
+	mul $t3, $t2, $t1
+	lw $t4, 20($sp)
+	add $t1, $t4, $t3
+	lw $t2, 0($sp)
+	div $t3, $t2, 5
+	move $t4, $t3
+	sw $t4, 0($t1)
+L4:
+	j L3
+L5:
+L6:
+	li $t1, 0
+	sw $t1, 12($sp)
+	lw $t2, 8($sp)
+	mul $t1, $t2, 2
+	move $t3, $t1
+	sw $t3, 24($sp)
+	lw $t1, 24($sp)
+	beqz $t1, L8
+	lw $t2, 8($sp)
+	sw $t2, 4($sp)
+L9:
+	li $t1, 4
+	lw $t2, 4($sp)
+	mul $t3, $t1, $t2
+	lw $t4, 20($sp)
+	add $t1, $t4, $t3
+	lw $t2, 0($t1)
+	lw $t3, 0($sp)
+	mul $t1, $t2, $t3
+	lw $t4, 12($sp)
+	add $t2, $t4, $t1
+	move $t3, $t2
+	sw $t3, 12($sp)
+	li $t1, 4
+	lw $t2, 4($sp)
+	mul $t3, $t1, $t2
+	lw $t4, 20($sp)
+	add $t1, $t4, $t3
+	lw $t2, 24($sp)
+	sub $t3, $t2, 1
+	move $t4, $t3
+	sw $t4, 24($sp)
+	lw $t2, 12($sp)
+	lw $t3, 24($sp)
+	rem $t4, $t2, $t3
+	move $t5, $t4
+	sw $t5, 0($t1)
+	lw $t2, 24($sp)
+	lw $t1, 24($sp)
+	sub $t3, $t1, 1
+	move $t4, $t3
+	sw $t4, 24($sp)
+	lw $t1, 12($sp)
+	div $t3, $t1, $t2
+	move $t4, $t3
+	sw $t4, 12($sp)
+	lw $t1, 4($sp)
+	sub $t2, $t1, 1
+	move $t3, $t2
+	sw $t3, 4($sp)
+	lw $t1, 4($sp)
+	beqz $t1, L11
+L10:
+	lw $t1, 12($sp)
+	lw $t2, 4($sp)
+	mul $t3, $t1, $t2
+	move $t4, $t3
+	sw $t4, 12($sp)
+	j L9
+L11:
+L7:
+	lw $t1, 8($sp)
+	sub $t2, $t1, 14
+	move $t3, $t2
+	sw $t3, 8($sp)
+	la $t1, L12
+	lw $t2, 12($sp)
+	lw $t3, 0($sp)
+	div $t4, $t2, $t3
+	lw $t5, 16($sp)
+	add $t2, $t5, $t4
+	move $a0, $t1
+	move $a1, $t2
+	jal L0
+	move $t3, $v0
+	lw $t4, 12($sp)
+	lw $t1, 0($sp)
+	rem $t2, $t4, $t1
+	move $t3, $t2
+	sw $t3, 16($sp)
+	j L6
+L8:
+	li $t0, 0
+	move $v0, $t0
+	lw $t5, 384($sp)
+	lw $t4, 380($sp)
+	lw $t3, 376($sp)
+	lw $t2, 372($sp)
+	lw $t1, 368($sp)
+	lw $t0, 364($sp)
+	lw $ra, 436($sp)
+	addiu $sp, $sp, 440
+	jr $ra
+	lw $t5, 384($sp)
+	lw $t4, 380($sp)
+	lw $t3, 376($sp)
+	lw $t2, 372($sp)
+	lw $t1, 368($sp)
+	lw $t0, 364($sp)
+	lw $ra, 436($sp)
+	addiu $sp, $sp, 440
+	jr $ra
 
 
 ########################################

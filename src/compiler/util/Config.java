@@ -6,6 +6,7 @@ public interface Config {
 	// LESS, LEQ, GREATER, GEQ, EQ, NEQ, ASSIGN,
 	// ADDASSIGN,SUBASSIGN, MULASSIGN, DIVASSIGN, MODASSIGN,
 	// LSHASSIGN, RSHASSIGN, ANDASSIGN, XORASSIGN, ORASSIGN
+	static final String[] ifFalseCmp = { "ge", "gt", "le", "lt", "ne", "eq" };
 
 	public static String bOpStr[] = { "+", "-", "*", "/", "%", "<<", ">>", "&",
 			"^", "|", "<", "<=", ">", ">=", "==", "!=", "=", "*=", "/=", "%=",
@@ -23,9 +24,6 @@ public interface Config {
 			"s1", "s2", "s3", "s4", "s5", "s6", "s7", "t8", "t9", "k0", "k1",
 			"gp", "sp", "fp", "ra", "spill" // special register
 	};
-
-	static final String[] ifFalseCmp = { "", "", "", "", "ne", "eq", "ge",
-			"gt", "le", "lt" };
 
 	static final int spillReg = regNames.length - 1;
 	static final int wordSize = 4;

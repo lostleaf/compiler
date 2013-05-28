@@ -10,6 +10,7 @@ import compiler.assem.AssemList;
 import compiler.temp.Addr;
 import compiler.temp.IntConstant;
 import compiler.temp.Label;
+import compiler.temp.Reference;
 import compiler.temp.Temp;
 
 public class IfFalse extends Quad {
@@ -18,6 +19,8 @@ public class IfFalse extends Quad {
 	public Label label = null;
 
 	public IfFalse(Addr a, Label f) {
+		if(a instanceof Reference )
+			new Exception().printStackTrace();
 		label = f;
 		addr = a;
 	}
