@@ -14,7 +14,7 @@ public final class CHAR extends TYPE {
 	}
 
 	private CHAR() {
-		size = new IntConstant(1);
+		size = new IntConstant(4);
 	}
 
 	@Override

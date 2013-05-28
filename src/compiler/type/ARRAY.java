@@ -4,19 +4,13 @@ import compiler.temp.Addr;
 import compiler.temp.IntConstant;
 
 public final class ARRAY extends POINTER {
-	public Addr capacity;
 
-	public ARRAY(TYPE type, int cap) {
-		this(type, new IntConstant(cap));
+	public ARRAY(TYPE type, int size) {
+		this(type, new IntConstant(size));
 	}
 
-	public ARRAY(TYPE type, Addr c) {
-		this(type, c, c);
-	}
-
-	public ARRAY(TYPE type, Addr capacity, Addr totalSize) {
+	public ARRAY(TYPE type, Addr totalSize) {
 		super(type);
-		this.capacity = capacity;
 		this.size = totalSize;
 	}
 

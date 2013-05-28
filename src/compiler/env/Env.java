@@ -98,7 +98,6 @@ public final class Env {
 		if (obj == null)
 			return null;
 		if (!(obj instanceof RECORD)) {
-			// Semantic.getCurrent().error(name.toString() + " not a record");
 			System.err.println("warning" + name.toString() + "not a record");
 			return null;
 		}

@@ -1,5 +1,9 @@
 package compiler.quad;
 
+<<<<<<< HEAD
+import compiler.absyn.UnaryOp;
+import compiler.temp.Addr;
+=======
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -9,6 +13,7 @@ import compiler.assem.Assem;
 import compiler.assem.AssemList;
 import compiler.temp.Addr;
 import compiler.temp.IntConstant;
+>>>>>>> codegen
 import compiler.temp.Temp;
 import compiler.util.Config;
 
@@ -26,6 +31,9 @@ public class Unaryop extends Quad implements Config {
 	public String toString() {
 		return dest + " = " + uOpStr[op.ordinal()] + " " + left;
 	}
+<<<<<<< HEAD
+}
+=======
 
 	@Override
 	public Set<Temp> def() {
@@ -84,3 +92,4 @@ public class Unaryop extends Quad implements Config {
 	}
 
 }
+>>>>>>> codegen
