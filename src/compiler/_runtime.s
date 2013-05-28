@@ -1,102 +1,8 @@
-########################################
-############### CODE GEN ###############
-########################################
-	.data
-L3:
-	.asciiz "%d\n"
-	.align 2
-	.align 2
-	.globl args
-args:	.space 4
-	.align 2
-	.globl stat
-stat:	.space 4
-	.text
-	.align 2
-	.globl main
-main:
-	la $gp, stat
-	la $v1, args
-	jal L2
-	jal exit
-L2:
-	addi $sp, $sp, -112
-	sw $ra, 108($sp)
-	sw $t5, 56($sp)
-	sw $t4, 52($sp)
-	sw $t3, 48($sp)
-	sw $t2, 44($sp)
-	sw $t1, 40($sp)
-	sw $t0, 36($sp)
-	li $t1, 123
-	sw $t1, 0($sp)
-	la $t2, L3
-	lw $t1, 0($sp)
-	lw $t3, 0($sp)
-	sub $t4, $t3, 1
-	move $t5, $t4
-	sw $t5, 0($sp)
-	move $a0, $t2
-	move $a1, $t1
-	jal L0
-	move $t3, $v0
-	li $t0, 0
-	move $v0, $t0
-	lw $t5, 56($sp)
-	lw $t4, 52($sp)
-	lw $t3, 48($sp)
-	lw $t2, 44($sp)
-	lw $t1, 40($sp)
-	lw $t0, 36($sp)
-	lw $ra, 108($sp)
-	addiu $sp, $sp, 112
-	jr $ra
-	lw $t5, 56($sp)
-	lw $t4, 52($sp)
-	lw $t3, 48($sp)
-	lw $t2, 44($sp)
-	lw $t1, 40($sp)
-	lw $t0, 36($sp)
-	lw $ra, 108($sp)
-	addiu $sp, $sp, 112
-	jr $ra
 
 
-########################################
-############### RUN-TIME ###############
-########################################
 
-#malloc
-L1: 
-	# a0 -- size in bytes (already x4)
-	li $v0, 9
-	syscall
-	jr $ra
 
-exit:
-	li $v0, 10
-	syscall
-	jr $ra
 
-## Daniel J. Ellard -- 03/13/94
-## printf.asm--
-## an implementation of a simple printf work-alike.
-
-## printf--
-## A simple printf-like function. Understands just the basic forms
-## of the %s, %d, %c, and %% formats, and can only have 3 embedded
-## formats (so that all of the parameters are passed in registers).
-## If there are more than 3 embedded formats, all but the first 3 are
-## completely ignored (not even printed).
-## Register Usage:
-## $a0,$s0 - pointer to format string
-## $a1,$s1 - format argument 1 (optional)
-## $a2,$s2 - format argument 2 (optional)
-## $a3,$s3 - format argument 3 (optional)
-## $s4 - count of formats processed.
-## $s5 - char at $s4.
-## $s6 - pointer to printf buffer
-##
 L0:
 	subu $sp, $sp, 40 # set up the stack frame,
 	sw $ra, 32($sp) # saving the local environment.
@@ -116,7 +22,7 @@ L0:
 	move $s1, $a1 # arg1 (optional)
 	move $s2, $a2 # arg2 (optional)
 	move $s3, $a3 # arg3 (optional)
-	lw $s7, 16($v1)# arg4 (optional) 
+	lw $s7, 16($v1)# arg4 (optional)
 
 	li $s4, 0 # set # of formats = 0
 	la $s6, printf_buf # set s6 = base of printf buffer.

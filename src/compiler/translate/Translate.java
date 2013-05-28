@@ -229,8 +229,9 @@ public class Translate implements Config {
 		Addr mallocAddr = env.getAddr(Symbol.symbol("malloc"));
 		if (isTopLevel) {
 			if (size instanceof IntConstant && ((IntConstant) size).value <= 4) {
-				Reference ref = new Reference(Temp.gp, new IntConstant(topLevelSize));
-				emitMove(ref,new IntConstant(0));
+				Reference ref = new Reference(Temp.gp, new IntConstant(
+						topLevelSize));
+				emitMove(ref, new IntConstant(0));
 				topLevelSize += ((IntConstant) size).value;
 				return ref;
 			}
@@ -849,8 +850,13 @@ public class Translate implements Config {
 		}
 
 		if (op == UnaryOp.STAR) {
-			if (pair.first instanceof Temp) {
-				Temp temp = loadToTemp(pair.first);
+			Temp temp = null;
+			if (pair.first instanceof Reference)
+				temp = loadToTemp(pair.first);
+			if (pair.first instanceof Temp)
+				temp = (Temp) pair.first;
+			if (temp != null) {
+				// Temp temp = (Temp)(pair.first);
 				type = ((POINTER) pair.second).elementType;
 				return new Pair<Addr, TYPE>(new Reference(temp), type);
 			} else
@@ -880,7 +886,10 @@ public class Translate implements Config {
 				return new Pair<Addr, TYPE>(new IntConstant(
 						((IntConst) e).value), INT.getInstance());
 			if (e instanceof CharConst) {
-				int c = (int) ((CharConst) e).value.charAt(1);
+				int c = (int) ((CharConst) e).value.replaceAll("\\\\n", "\n")
+						.charAt(1);
+				// System.out.println(((CharConst) e).value.replaceAll("\\\\n",
+				// "\n"));
 				return new Pair<Addr, TYPE>(new IntConstant(c),
 						CHAR.getInstance());
 			}
@@ -890,8 +899,8 @@ public class Translate implements Config {
 			Label l = new Label();
 			String str = ((StringExpr) e).value;
 			str = str.substring(1, str.length() - 1);
-			System.out.println(str);
-			DataFrag data = new DataFrag(l, str);
+			// System.out.println(str);
+			DataFrag data = new DataFrag(l, str.replaceAll("\\\\n", "\n"));
 			dataFrags.add(data);
 			return new Pair<Addr, TYPE>(l, new ARRAY(CHAR.getInstance(),
 					new IntConstant(((StringExpr) e).value.length() * 4)));

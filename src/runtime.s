@@ -5,7 +5,7 @@
 ########################################
 
 #malloc
-L1: 
+L1:
 	# a0 -- size in bytes (already x4)
 	li $v0, 9
 	syscall
@@ -36,7 +36,7 @@ exit:
 ## $s6 - pointer to printf buffer
 ##
 L0:
-	subu $sp, $sp, 40 # set up the stack frame,
+	subu $sp, $sp, 44 # set up the stack frame,
 	sw $ra, 32($sp) # saving the local environment.
 	sw $fp, 28($sp)
 	sw $s0, 24($sp)
@@ -47,14 +47,16 @@ L0:
 	sw $s5, 4($sp)
 	sw $s6, 0($sp)
 	sw $s7, 36($sp)
-	addu $fp, $sp, 36
+	sw $t0, 40($sp)
+	addu $fp, $sp, 40
 
 # grab the arguments:
 	move $s0, $a0 # fmt string
 	move $s1, $a1 # arg1 (optional)
 	move $s2, $a2 # arg2 (optional)
 	move $s3, $a3 # arg3 (optional)
-	lw $s7, 16($v1)# arg4 (optional) 
+	lw $s7, 16($v1)# arg4 (optional)
+	lw $t0, 20($v1)# arg5 (optional)
 
 	li $s4, 0 # set # of formats = 0
 	la $s6, printf_buf # set s6 = base of printf buffer.
@@ -79,7 +81,7 @@ printf_fmt:
 	lb $s5, 0($s0) # see what the fmt character is,
 	addu $s0, $s0, 1 # and bump up the pointer.
 
-	beq $s4, 4, printf_loop # if we've already processed 3 args,
+	beq $s4, 5, printf_loop # if we've already processed 3 args,
 # then *ignore* this fmt.
 	beq $s5, 'd', printf_int # if 'd', print as a decimal integer.
 	beq $s5, 's', printf_str # if 's', print as a string.
@@ -91,6 +93,7 @@ printf_shift_args: # shift over the fmt args,
 	move $s1, $s2 # $s1 = $s2
 	move $s2, $s3 # $s2 = $s3
 	move $s3, $s7 # $s3 = $s7
+	move $s7, $t0
 
 	add $s4, $s4, 1 # increment # of args processed.
 
@@ -127,6 +130,7 @@ printf_perc: # deal with a %%:
 
 printf_end:
 	lw $s7, 36($sp)
+	lw $t0, 40($sp)
 	lw $ra, 32($sp) # restore the prior environment:
 	lw $fp, 28($sp)
 	lw $s0, 24($sp)
@@ -136,7 +140,7 @@ printf_end:
 	lw $s4, 8($sp)
 	lw $s5, 4($sp)
 	lw $s6, 0($sp)
-	addu $sp, $sp, 40 # release the stack frame.
+	addu $sp, $sp, 44 # release the stack frame.
 	jr $ra # return.
 
 .data

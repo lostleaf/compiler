@@ -45,7 +45,7 @@ public class Main implements Config {
 		}
 	}
 
-	static String flname = "maxflow-5100379110-daibo.c";
+	static String flname = "self-5090379042-jiaxiao.c";
 	static Program program = null;
 	static Translate translate = null;
 
