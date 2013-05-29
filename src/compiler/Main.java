@@ -45,7 +45,7 @@ public class Main implements Config {
 		}
 	}
 
-	static String flname = "self-5090379042-jiaxiao.c";
+	static String flname = "test.c";
 	static Program program = null;
 	static Translate translate = null;
 
