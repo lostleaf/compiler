@@ -1,5 +1,3 @@
-
-
 ########################################
 ############### RUN-TIME ###############
 ########################################
@@ -36,7 +34,7 @@ exit:
 ## $s6 - pointer to printf buffer
 ##
 L0:
-	subu $sp, $sp, 44 # set up the stack frame,
+	subu $sp, $sp, 56 # set up the stack frame,
 	sw $ra, 32($sp) # saving the local environment.
 	sw $fp, 28($sp)
 	sw $s0, 24($sp)
@@ -48,7 +46,10 @@ L0:
 	sw $s6, 0($sp)
 	sw $s7, 36($sp)
 	sw $t0, 40($sp)
-	addu $fp, $sp, 40
+	sw $t1, 44($sp)
+	sw $t2, 48($sp)
+	sw $t3, 52($sp)
+	addu $fp, $sp, 52
 
 # grab the arguments:
 	move $s0, $a0 # fmt string
@@ -83,6 +84,7 @@ printf_fmt:
 
 	beq $s4, 5, printf_loop # if we've already processed 3 args,
 # then *ignore* this fmt.
+	beq $s5, '0', printf_pre
 	beq $s5, 'd', printf_int # if 'd', print as a decimal integer.
 	beq $s5, 's', printf_str # if 's', print as a string.
 	beq $s5, 'c', printf_char # if 'c', print as a ASCII char.
@@ -98,6 +100,37 @@ printf_shift_args: # shift over the fmt args,
 	add $s4, $s4, 1 # increment # of args processed.
 
 	b printf_loop # and continue the main loop.
+	
+printf_pre:
+	lb $s5, ($s0)
+	sub $s5, $s5, 48
+	add $s0, $s0, 2
+	
+	li $t1, 0
+	move $t2, $s1
+printf_digits_begin:
+	beqz $t2, printf_digits_end
+	add $t1, $t1, 1
+	div $t2, $t2, 10
+	b printf_digits_begin
+	
+printf_digits_end:
+	sub $t1, $s5, $t1
+	
+printf_pre_output_zero_begin:
+	beqz $t1, printf_pre_output_zero_end
+	sub $t1, $t1, 1
+	li $a0, 0
+	li $v0, 1
+	syscall
+	b printf_pre_output_zero_begin
+	
+printf_pre_output_zero_end:
+	move $a0, $s1
+	li $v0, 1
+	syscall
+	b printf_shift_args
+	
 
 printf_int: # deal with a %d:
 	move $a0, $s1 # do a print_int syscall of $s1.
@@ -129,6 +162,9 @@ printf_perc: # deal with a %%:
 	b printf_loop # branch to printf_loop
 
 printf_end:
+	lw $t1, 44($sp)
+	lw $t2, 48($sp)
+	lw $t3, 52($sp)
 	lw $s7, 36($sp)
 	lw $t0, 40($sp)
 	lw $ra, 32($sp) # restore the prior environment:
@@ -140,8 +176,9 @@ printf_end:
 	lw $s4, 8($sp)
 	lw $s5, 4($sp)
 	lw $s6, 0($sp)
-	addu $sp, $sp, 44 # release the stack frame.
+	addu $sp, $sp, 56 # release the stack frame.
 	jr $ra # return.
 
 .data
 	printf_buf: .space 2
+
