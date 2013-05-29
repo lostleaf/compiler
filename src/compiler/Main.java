@@ -34,18 +34,20 @@ import compiler.util.Config;
 import compiler.util.Error;
 
 public class Main implements Config {
-	static class MyListener extends BaseErrorListener {
+	static class CListener extends BaseErrorListener {
 		@Override
 		public void syntaxError(Recognizer<?, ?> recognizer,
 				Object offendingSymbol, int line, int charPositionInLine,
 				String msg, RecognitionException e) {
-			System.out.println("Parse Error");
-			System.out.println("1");
+			System.out.println("Parse Error" + line + " " + charPositionInLine
+					+ " " + msg);
+			e.printStackTrace();
+			System.out.println("exit with 1");
 			System.exit(1);
 		}
 	}
 
-	static String flname = "test.c";
+	static String fileName = "multiarray-5100309153-yanghuan.c";
 	static Program program = null;
 	static Translate translate = null;
 
@@ -55,7 +57,7 @@ public class Main implements Config {
 
 	public static void main(String[] args) throws Exception {
 		if (args.length > 0)
-			flname = args[0];
+			fileName = args[0];
 		try {
 			syntactics();
 		} catch (Exception e) {
@@ -74,7 +76,7 @@ public class Main implements Config {
 		translate = new Translate();
 		translate.transProgram(program);
 
-		FileWriter writer = new FileWriter(flname + ".q", false);
+		FileWriter writer = new FileWriter(fileName + ".q", false);
 		writer.write("-------------StaticDataFrag---------------\n");
 		for (DataFrag sd : translate.dataFrags)
 			writer.write(sd + "\n");
@@ -100,7 +102,6 @@ public class Main implements Config {
 			u.findBasicBlocks(analyzer);
 			u.findLiveness(analyzer);
 		}
-		// opt =false;
 		if (opt) {
 			// LocalCopyPropagation lcp = new LocalCopyPropagation();
 			// DeadCodeEliminator dce = new DeadCodeEliminator();
@@ -129,7 +130,7 @@ public class Main implements Config {
 				} while (!u.getQuads().equals(oldQuads));
 			}
 		}
-		FileWriter writer = new FileWriter(flname + ".qq", false);
+		FileWriter writer = new FileWriter(fileName + ".qq", false);
 		writer.write("-------------StaticDataFrag---------------\n");
 		for (DataFrag sd : translate.dataFrags)
 			writer.write(sd + "\n");
@@ -142,8 +143,8 @@ public class Main implements Config {
 		Codegen codegen = new Codegen();
 
 		codegen.gen(new Assem(".data"));
-		for (DataFrag sd : translate.dataFrags)
-			codegen.gen(sd.gen());
+		for (DataFrag data : translate.dataFrags)
+			codegen.gen(data.gen());
 		codegen.gen(new Assem(".align 2"));
 		codegen.gen(new Assem(".globl args"));
 		codegen.gen(new Assem("!args:\t.space %", (translate.maxArgc + 1)
@@ -173,7 +174,7 @@ public class Main implements Config {
 		// ========================================//
 
 		PrintStream out = new PrintStream(new BufferedOutputStream(
-				new FileOutputStream(flname + ".s")));
+				new FileOutputStream(fileName + ".s")));
 		out.println("########################################");
 		out.println("############### CODE GEN ###############");
 		out.println("########################################");
@@ -193,18 +194,19 @@ public class Main implements Config {
 		scanner.close();
 	}
 
-	public static void syntactics() throws Exception {
-		ANTLRFileStream input = new ANTLRFileStream(flname);
+	private static void syntactics() throws Exception {
+		ANTLRFileStream input = new ANTLRFileStream(fileName);
 		CLexer lexer = new CLexer(input);
-		CommonTokenStream tokens = new CommonTokenStream(lexer);
+		CommonTokenStream cts = new CommonTokenStream(lexer);
 
-		CParser parser = new CParser(tokens);
-		tokens.fill();
+		CParser parser = new CParser(cts);
+		cts.fill();
 
 		parser.removeErrorListeners();
-		parser.addErrorListener(new MyListener());
-		ProgramContext tree = parser.program();
-		program = tree.ret;
+		parser.addErrorListener(new CListener());
+		ProgramContext context = parser.program();
+		//context.save(parser, fileName+ ".ps");
+		program = context.ret;
 
 	}
 }

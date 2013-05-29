@@ -474,16 +474,23 @@ public class Translate implements Config {
 					symbol) : new UNION(symbol);
 			env.putType(record, symbol);
 
-			Temp size = loadToTemp(new IntConstant(0));
+			Addr size = new IntConstant(0);
 			for (Pair<TypeSpecifier, Declarators> pair : rType.pairs) {
 				TYPE type = transTypeSpecifier(pair.first);
 				List<Pair<TYPE, Symbol>> pairs = transDeclarators(pair.second,
 						type);
 
 				for (Pair<TYPE, Symbol> p : pairs) {
-					Temp t = loadToTemp(size);
-					record.addField(p.first, p.second, t);
-					emitBinop(size, size, p.first.size, BinOp.ADD);
+					Addr offset = null;
+					if (size instanceof IntConstant)
+						offset = ((IntConstant) size).clone();
+					else {
+						offset = allocate(new IntConstant(4));
+						emitMove(offset, size);
+					}
+					// Temp t = loadToTemp(size);
+					record.addField(p.first, p.second, offset);
+					size = emitBinop(newTemp(), size, p.first.size, BinOp.ADD);
 				}
 			}
 			record.size = size;
