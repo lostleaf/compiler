@@ -19,7 +19,6 @@
 %
 %-----------------------------------------------------------------------------
 
-
 \documentclass[nocopyrightspace]{sigplanconf}
 
 % The following \documentclass options may be useful:
@@ -29,12 +28,13 @@
 % authoryear    To obtain author/year citation style instead of numeric.
 
 \usepackage{amsmath}
-
+\usepackage{listings}
+\usepackage{mips}
 \begin{document}
 
-\conferenceinfo{WXYZ '05}{date, City.} 
-\copyrightyear{2005} 
-\copyrightdata{[to be supplied]} 
+\conferenceinfo{WXYZ '05}{date, City.}
+\copyrightyear{2005}
+\copyrightdata{[to be supplied]}
 
 %\titlebanner{banner above paper title}        % These are ignored unless
 %\preprintfooter{short description of paper}   % 'preprint' option specified.
@@ -49,7 +49,7 @@
 \maketitle
 
 \begin{abstract}
-This report describes the compiler course project. The design of Abstract syntax tree and immediate representative along with some optimization are included in this report. 
+This report describes the compiler course project. The design of Abstract syntax tree and immediate representative along with some optimization are included in this report.
 \end{abstract}
 
 \category{D.3.4}{Programming Languages}{compiler}
@@ -130,37 +130,192 @@ The semantic checking producure is called after AST generating. Semantic checkin
 
 \subsection{Left Value}
 	Most left values checking happens in assignments. And some operator such as ``\&''(get address) and ``++''(self increment)\\
-	
+
 \subsection{Declaration}
-	The check about declaration and use before declarated is based on symbol table. If a variable cannot be found in the symbol table while used, a ``variable not declaraded'' error would be reported.
-	
+	The check about declaration and use before declarated is based on symbol table. If a variable cannot be found in the symbol table while used, a ``variable not declaraded'' error would be reported. The uniqueness would also be checked.
+
 \subsection{Returns and Breaks}
 	Returns and breaks are checked by some counters.
 
 \subsection{Other items}
 	The details not metioned can be found in \textit{Semantic.java} under \textit{semantic} directory
 
-\appendix
-\section{Appendix Title}
+\section{Immediate Representative(IR)}
+\subsection{Temp}
+\begin{itemize}
+\item Addr: an interface all temps need to inplement
+\begin{itemize}
+	\item Temp: regiseters
+	\item Reference: correspond to memory space to support pointers.
+	\item Label: labels in MIPS
+	\item IntConstant: integers
+	\item AddrList: to initialize structures or arrays
+\end{itemize}
+\end{itemize}
+\subsection{Quad}
+\begin{itemize}
+\item Binop: binary expressions
+\item Branch: branch with condition
+\item Call: function call
+\item Enter: enter a function, save registers
+\item Goto: branch with no condition
+\item IfFalse: bnez
+\item IfTrue: beqz
+\item LabelQuad: label, packaging of Label in temps
+\item Leave: leave a function, load registers
+\item Move: assignment, \textbf{move} in MIPS
+\item Return: assign the register for returen value
+\item Unaryop: unary operator expressions including \textbf{-a}, \textbf{\textasciitilde a} and \textbf{!a}
+\end{itemize}
 
-This is the text of the appendix, if you need one.
+\section{Code Optimization}
+\subsection{Combine Assigntment and IfTrue/IfFalse}
+Such a sequence of instructions always appear:
+\lstset{language=[mips]Assembler}
+\begin{lstlisting}
+    slt $t3, $t1, $t2
+    bnez $t3, LABEL
+\end{lstlisting}
+It can be combined:
+\begin{lstlisting}
+    bge $t1, $t2, LABEL
+\end{lstlisting}
+So, if the result of a comparison expression like \textbf{slt}(\textsl{Binop with $<$})  is used by a following  \textbf{beqz}(\textsl{IfTrue}) or \textbf{bnez}(\textsl{IfFalse}), the two codes can be combine to one \textsl{Branch}---- \textbf{bge}(\textsl{Branch with `greater or equal'}) in this case.
+
+\subsection{Constant Folding}
+Constant folding is an easy but useful optimization. The sequence shown below can be calculated while compiling:
+\begin{lstlisting}
+li $t1, 1
+li $t2, 2
+add $t3, $t1, $t2
+li $t4, 3
+mul $t5, $t3, $t4
+\end{lstlisting}
+This is MIPS code sequence for
+$$t5 = (1+2)*3$$
+If \textbf{t5} is replaced with the constant 9, both registers and instructions are reduced.\\
+This happens while generating IR, if a \textsl{Binop} has both constant operands, the target would be replaced with a constant of the calculated result.\\
+Constant Folding reduced about 170,000 instructions for queens testcase.
+
+\subsection{Register Allocation}
+Regiseter Allocation is the most powerful optimimation, and the linear scan algorithm is used here.
+
+\section{Other work}
+\subsection{Variable-length array}
+Since the length of an array can either be an constant or an temp(register). \\
+If the length of the array is an constant, the space would be directly allocate in the stack, else the \textbf{malloc} function would be called.
+\subsection{Translate wikipedia}
+
+\appendix
+
+\section{Full inheritance of AST}
+\begin{itemize}
+	\item Node
+	\item Program
+	\item InitDeclarator
+	\item PlainDeclarator
+	\item Parameters
+	\item Initializer
+	\item InitDeclarators
+	\item Declaration
+	\item Arguments
+	\item FunctionDefinition
+	\item Declarators
+	\item TypeName
+	\item PlainDeclaration
+
+	\item Stmt
+	\begin{itemize}
+		\item SelStmt
+		\item ExprStmt
+		\item CompStmt
+		\item IterStmt
+		\begin{itemize}
+			\item ForStmt
+			\item WhileStmt
+		\end{itemize}
+		\item JumpStmt
+		\begin{itemize}
+			\item ReturnStmt
+			\item BreakStmt
+			\item ContinueStmt
+		\end{itemize}
+	\end{itemize}
+
+
+	\item Expression
+	\begin{itemize}
+		\item Expr
+		\item AssExpr
+		\item PriExpr
+
+		\item BinExpr
+		\begin{itemize}
+			\item ShiftExpr
+			\item AddExpr
+			\item AndExpr
+			\item EquExpr
+			\item LogOrExpr
+			\item InOrExpr
+			\item RelExpr
+			\item LogAndExpr
+			\item MulExpr
+			\item ExOrExpr
+		\end{itemize}
+
+		\item Constant
+		\begin{itemize}
+			\item CharConst
+			\item IntConst
+		\end{itemize}
+
+		\item Postfix
+		\begin{itemize}
+			\item SelfDecPostfix
+			\item ArrPostfix
+			\item PtrAttrPostfix
+			\item FunPostfix
+			\item ValAttrPostfix
+			\item SelfIncPostfix
+		\end{itemize}
+
+		\item Id
+		\item StringExpr
+		\item CastExpr
+		\item ConstExpr
+		\item PostExpr
+		\item UnaryExpr
+	\end{itemize}
+
+	\item Declarator
+	\begin{itemize}
+		\item FunDeclarator
+		\item ArrDeclarator
+	\end{itemize}
+
+	\item TypedefName
+	\item TypeSpecifier
+	\begin{itemize}
+		\item VoidType
+		\item RecordType
+		\item IntType
+		\item NameType
+		\item CharType
+	\end{itemize}
+
+\end{itemize}
 
 \acks
 
-Acknowledgments, if needed.
-
+Many thanks to TAs
 % We recommend abbrvnat bibliography style.
 
 \bibliographystyle{abbrvnat}
 
 % The bibliography should be embedded for final submission.
 
-\begin{thebibliography}{}
-\softraggedright
-
-\bibitem[Smith et~al.(2009)Smith, Jones]{smith02}
-P. Q. Smith, and X. Y. Jones. ...reference text...
-
-\end{thebibliography}
+\section*{Reference}
+Compilers: Principles, Techniques and Tools\\
+Xiao Jia's and other TAs' materials\\
 
 \end{document}
