@@ -1,2 +1,6 @@
 bin/
 .metadata/
+*.aux
+*.log
+*.dvi
+*.synctex.gz

@@ -1,9 +1,5 @@
 package compiler;
 
-import java.io.BufferedOutputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.PrintStream;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -47,22 +43,39 @@ public class Main implements Config {
 		}
 	}
 
-	static String fileName = "multiarray-5100309153-yanghuan.c";
+	static String fileName = "queens-5100379110-daibo.c";
 	static Program program = null;
 	static Translate translate = null;
 
 	static void exit(int a) {
-		System.out.println("exit with " + a);
+		// System.out.println("exit with " + a);
+		System.exit(1);
 	}
 
-	public static void main(String[] args) throws Exception {
+	private static void syntactics() throws Exception {
+		ANTLRFileStream input = new ANTLRFileStream(fileName);
+		CLexer lexer = new CLexer(input);
+		CommonTokenStream cts = new CommonTokenStream(lexer);
+
+		CParser parser = new CParser(cts);
+		cts.fill();
+
+		parser.removeErrorListeners();
+		parser.addErrorListener(new CListener());
+		ProgramContext context = parser.program();
+		program = context.ret;
+
+	}
+
+	public static void main(String[] args) {
 		if (args.length > 0)
 			fileName = args[0];
+
 		try {
 			syntactics();
 		} catch (Exception e) {
 			System.out.println("1");
-			throw e;
+			exit(1);
 		}
 		Semantic semantic = new Semantic();
 		semantic.checkProgram(program);
@@ -71,77 +84,13 @@ public class Main implements Config {
 		if (semantic.hasError())
 			exit(1);
 
-		System.out.println("0");
-
 		translate = new Translate();
 		translate.transProgram(program);
 
-		FileWriter writer = new FileWriter(fileName + ".q", false);
-		writer.write("-------------StaticDataFrag---------------\n");
-		for (DataFrag sd : translate.dataFrags)
-			writer.write(sd + "\n");
-		for (int i = 0; i < translate.cus.size(); ++i) {
-			writer.write("---------CU" + i + "----------\n");
-			for (Quad q : translate.cus.get(i).quads)
-				writer.write(q + "\n");
-		}
-		writer.close();
 		codeGeneration(true);
-		System.exit(0);
-
 	}
 
-	public static void codeGeneration(boolean opt) throws Exception {
-		Analyzer analyzer = new Analyzer();
-		// LabelEliminator le = new LabelEliminator();
-
-		for (CompilationUnit u : translate.cus) {
-			// while (le.eliminate(u))
-			// ;
-			u.findBranches(analyzer);
-			u.findBasicBlocks(analyzer);
-			u.findLiveness(analyzer);
-		}
-		if (opt) {
-			// LocalCopyPropagation lcp = new LocalCopyPropagation();
-			// DeadCodeEliminator dce = new DeadCodeEliminator();
-
-			for (CompilationUnit u : translate.cus) {
-
-				List<Quad> oldQuads = new LinkedList<Quad>();
-				do {
-					oldQuads.clear();
-					oldQuads.addAll(u.getQuads());
-					List<Quad> nqs = new LinkedList<Quad>();
-					for (BasicBlock bb : u.getBasicBlocks()) {
-						// lcp.propagate(bb);
-						for (Iterator<Quad> it = bb.getQuads().iterator(); it
-								.hasNext();)
-							nqs.add((Quad) (it.next()));
-					}
-					u.setQuads(nqs);
-
-					u.findBasicBlocks(analyzer);
-					u.findLiveness(analyzer);
-					// dce.eliminate(u);
-
-					u.findBasicBlocks(analyzer);
-					u.findLiveness(analyzer);
-				} while (!u.getQuads().equals(oldQuads));
-			}
-		}
-		FileWriter writer = new FileWriter(fileName + ".qq", false);
-		writer.write("-------------StaticDataFrag---------------\n");
-		for (DataFrag sd : translate.dataFrags)
-			writer.write(sd + "\n");
-		for (int i = 0; i < translate.cus.size(); ++i) {
-			writer.write("---------CU" + i + "----------\n");
-			for (Quad q : translate.cus.get(i).quads)
-				writer.write(q + "\n");
-		}
-		writer.close();
-		Codegen codegen = new Codegen();
-
+	private static void codegenInitialize(Codegen codegen, Analyzer analyzer) {
 		codegen.gen(new Assem(".data"));
 		for (DataFrag data : translate.dataFrags)
 			codegen.gen(data.gen());
@@ -164,49 +113,72 @@ public class Main implements Config {
 		codegen.gen(translate.cus.get(0), new LinearScan(translate.cus.get(0),
 				analyzer));
 		codegen.gen(new Assem("jal exit"));
+	}
+
+	private static void printRuntime(PrintStream out, boolean gc) {
+		String runtime_s = "/runtime.s";
+		Scanner scanner = new Scanner(Main.class.getResourceAsStream(runtime_s));
+		for (; scanner.hasNextLine(); out.println(scanner.nextLine()))
+			;
+		scanner.close();
+	}
+
+	private static void optimize(Analyzer analyzer) {
+		for (CompilationUnit u : translate.cus) {
+
+			List<Quad> oldQuads = new LinkedList<Quad>();
+			do {
+				oldQuads.clear();
+				oldQuads.addAll(u.getQuads());
+				List<Quad> nqs = new LinkedList<Quad>();
+				for (BasicBlock bb : u.getBasicBlocks()) {
+					for (Iterator<Quad> it = bb.getQuads().iterator(); it
+							.hasNext();)
+						nqs.add((Quad) (it.next()));
+				}
+				u.setQuads(nqs);
+
+				u.findBasicBlocks(analyzer);
+				u.findLiveness(analyzer);
+
+				u.findBasicBlocks(analyzer);
+				u.findLiveness(analyzer);
+			} while (!u.getQuads().equals(oldQuads));
+		}
+	}
+
+	public static void codeGeneration(boolean opt) {
+		Analyzer analyzer = new Analyzer();
+
+		for (CompilationUnit u : translate.cus) {
+			u.findBranches(analyzer);
+			u.findBasicBlocks(analyzer);
+			u.findLiveness(analyzer);
+		}
+
+		optimize(analyzer);
+
+		Codegen codegen = new Codegen();
+		codegenInitialize(codegen, analyzer);
 
 		for (int i = 1; i < translate.cus.size(); ++i) {
 			codegen.gen(translate.cus.get(i),
 					new LinearScan(translate.cus.get(i), analyzer));
 		}
 
-		// ======================================== Output
-		// ========================================//
-
-		PrintStream out = new PrintStream(new BufferedOutputStream(
-				new FileOutputStream(fileName + ".s")));
-		out.println("########################################");
-		out.println("############### CODE GEN ###############");
-		out.println("########################################");
-		codegen.flush(out, false);
-		printRuntime(out, false);
-		out.close();
+		PrintStream output = System.out;
+		// new PrintStream(new BufferedOutputStream(new
+		// FileOutputStream(fileName + ".s")));
+		printCodegenBanner(output);
+		codegen.flush(output, false);
+		printRuntime(output, false);
+		output.close();
 	}
 
-	private static void printRuntime(PrintStream out, boolean gc)
-			throws FileNotFoundException {
-		String runtime_s = "/runtime.s";
-		// System.out.println(Main.class.getResource("/runtime.s"));
-		Scanner scanner = new Scanner(Main.class.getResourceAsStream(runtime_s));
-		while (scanner.hasNextLine()) {
-			out.println(scanner.nextLine());
-		}
-		scanner.close();
+	private static void printCodegenBanner(PrintStream output) {
+		output.println("########################################");
+		output.println("############### CODE GEN ###############");
+		output.println("########################################");
 	}
 
-	private static void syntactics() throws Exception {
-		ANTLRFileStream input = new ANTLRFileStream(fileName);
-		CLexer lexer = new CLexer(input);
-		CommonTokenStream cts = new CommonTokenStream(lexer);
-
-		CParser parser = new CParser(cts);
-		cts.fill();
-
-		parser.removeErrorListeners();
-		parser.addErrorListener(new CListener());
-		ProgramContext context = parser.program();
-		//context.save(parser, fileName+ ".ps");
-		program = context.ret;
-
-	}
 }
